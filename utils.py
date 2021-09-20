@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import datetime
 import json
 import os
@@ -154,7 +156,6 @@ def update_user_utc_time_offset(user_id: int, utc_offset: str) -> bool:
     :param utc_offset: UTC offset string
     :return: True if UTC offset was updated, otherwise False
     """
-
     def check_offset_format_is_correct(offset: str):
         return len(offset.split(':')[0]) == 3 and len(offset.split(':')[1]) == 2
 
