@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-import logging
 import os
 from collections import namedtuple
 from enum import Enum
@@ -33,17 +32,14 @@ class SoberSerenity:
         self.updater = Updater(token=token)
         self.dispatcher = self.updater.dispatcher
 
-        # self.job_queue = self.updater.job_queue
-        logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
-
     @staticmethod
     def main_menu_keyboard():
         """Main menu keyboard"""
         keyboard = [
-            [InlineKeyboardButton("Clean Time", callback_data=str(MenuElements.CLEAN_TIME.value.data))],
+            [InlineKeyboardButton("⏳ Clean Time ⏳", callback_data=str(MenuElements.CLEAN_TIME.value.data))],
             [
-                InlineKeyboardButton("Readings", callback_data=str(MenuElements.READINGS.value.data)),
-                InlineKeyboardButton("Prayers", callback_data=str(MenuElements.PRAYERS.value.data)),
+                InlineKeyboardButton("📚 Readings 📚", callback_data=str(MenuElements.READINGS.value.data)),
+                InlineKeyboardButton("🙏 Prayers 🙏", callback_data=str(MenuElements.PRAYERS.value.data)),
             ],
         ]
         return InlineKeyboardMarkup(keyboard, resize_keyboard=True)
@@ -53,10 +49,11 @@ class SoberSerenity:
         """Readings menu keyboard"""
         keyboard = [
             [
-                InlineKeyboardButton("Daily Reflections", callback_data=str(MenuElements.DAILY_REFLECTION.value.data)),
-                InlineKeyboardButton("Just For Today", callback_data=str(MenuElements.JUST_FOR_TODAY.value.data)),
+                InlineKeyboardButton("📖 Daily Reflections 📖",
+                                     callback_data=str(MenuElements.DAILY_REFLECTION.value.data)),
+                InlineKeyboardButton("📖 Just For Today 📖", callback_data=str(MenuElements.JUST_FOR_TODAY.value.data)),
             ],
-            [InlineKeyboardButton("Main Menu", callback_data=str(MenuElements.MAIN_MENU.value.data))],
+            [InlineKeyboardButton("〽️ Main Menu 〽️", callback_data=str(MenuElements.MAIN_MENU.value.data))],
         ]
         return InlineKeyboardMarkup(keyboard, resize_keyboard=True)
 
@@ -65,24 +62,26 @@ class SoberSerenity:
         """Prayers menu keyboard"""
         keyboard = [
             [
-                InlineKeyboardButton("LORD's Prayer", callback_data=str(MenuElements.LORDS_PRAYER.value.data)),
-                InlineKeyboardButton("Serenity Prayer", callback_data=str(MenuElements.SERENITY_PRAYER.value.data)),
+                InlineKeyboardButton("📜 LORD's Prayer 📜", callback_data=str(MenuElements.LORDS_PRAYER.value.data)),
+                InlineKeyboardButton("📜 Serenity Prayer 📜",
+                                     callback_data=str(MenuElements.SERENITY_PRAYER.value.data)),
             ],
             [
-                InlineKeyboardButton("St. Joseph's Prayer",
+                InlineKeyboardButton("📜 St. Joseph's Prayer 📜",
                                      callback_data=str(MenuElements.ST_JOSEPHS_PRAYER.value.data)),
-                InlineKeyboardButton("Tender and Compassionate GOD",
+                InlineKeyboardButton("📜 Tender and Compassionate GOD 📜",
                                      callback_data=str(MenuElements.TENDER_AND_COMPASSIONATE_GOD.value.data)),
             ],
             [
-                InlineKeyboardButton("Third Step Prayer", callback_data=str(MenuElements.THIRD_STEP_PRAYER.value.data)),
-                InlineKeyboardButton("Seventh Step Prayer",
+                InlineKeyboardButton("📜 Third Step Prayer 📜",
+                                     callback_data=str(MenuElements.THIRD_STEP_PRAYER.value.data)),
+                InlineKeyboardButton("📜 Seventh Step Prayer 📜",
                                      callback_data=str(MenuElements.SEVENTH_STEP_PRAYER.value.data)),
             ],
             [
-                InlineKeyboardButton("Eleventh Step Prayer",
+                InlineKeyboardButton("📜 Eleventh Step Prayer 📜",
                                      callback_data=str(MenuElements.ELEVENTH_STEP_PRAYER.value.data)),
-                InlineKeyboardButton("Main Menu", callback_data=str(MenuElements.MAIN_MENU.value.data)),
+                InlineKeyboardButton("〽️ Main Menu 〽️", callback_data=str(MenuElements.MAIN_MENU.value.data)),
             ],
         ]
         return InlineKeyboardMarkup(keyboard, resize_keyboard=True)
@@ -116,19 +115,19 @@ class SoberSerenity:
                'need to practice spiritual exercises to keep your soul in shape.'
 
     @staticmethod
-    def update_context_with_user_data(update: Update, context: CallbackContext):
+    def update_context_with_user_data(update: Update, context: CallbackContext) -> None:
         """Update context.user_data with UserProfile data"""
         # Update needed only when context doesn't contain user_data
         if not context.user_data:
-            try:
+            if hasattr(update.callback_query, 'message'):
                 chat = update.callback_query.message.chat
-            except AttributeError:
+            else:
                 chat = update.message.chat
 
-            if not utils.check_user_exists(chat.id):
-                user = utils.create_user(chat)
-            else:
+            if utils.check_user_exists(chat.id):
                 user = utils.get_user(chat.id)
+            else:
+                user = utils.create_user(chat)
             key = str(uuid4())
             context.user_data[key] = user
 
@@ -160,35 +159,27 @@ class SoberSerenity:
         user = self.__get_user(update, context)
         if user['CleanDateTime']:
             clean_date_time = utils.convert_str_to_datetime(user['CleanDateTime'])
-            if not clean_date_time:
-                msg = 'Invalid  date format. Please provide date in format "YYYY-MM-DD HH:MM:SS" or "YYY-MM-DD"'
-            else:
-                msg = f'{utils.get_random_motivational_str()}\n\n{utils.get_clean_time(clean_date_time)}'
+            msg = f'{utils.get_random_motivational_str()}\n\n{utils.get_clean_time(clean_date_time)}'
         else:
-            msg = "User profile not set with clean date. Set user profile with clean date to get clean time data."
+            msg = f'{user["FirstName"]}, you haven\'t set your profile yet. Please set user profile with clean date' \
+                  f' to get clean time data.'
         self.__answer_callback_query(update)
         self.__send_message(update, context, msg, reply_markup=self.main_menu_keyboard())
 
     def readings(self, update: Update, context: CallbackContext) -> None:
         """Get reading for today [default] or a specific date [user input]."""
         self.update_context_with_user_data(update, context)
-        try:
+        if hasattr(update.message, 'text'):
             inp = update.message.text.split()
             reading = MenuElements[inp[0][1:].upper()].value.name
-        except AttributeError:
-            inp = ""
+            dt = utils.convert_str_to_datetime(inp[1])
+            if not dt:
+                msg = 'Invalid  date format. Please provide date in format "YYYY-MM-DD HH:MM:SS" or "YYY-MM-DD"'
+            else:
+                msg = utils.get_reading(reading, dt)
+        else:
             ch = update.callback_query.data
             reading = utils.get_menu_element_from_chr(ch).value.name
-        if len(inp) > 1:
-            try:
-                dt = utils.convert_str_to_datetime(inp[1])
-                if not dt:
-                    msg = 'Invalid  date format. Please provide date in format "YYYY-MM-DD HH:MM:SS" or "YYY-MM-DD"'
-                else:
-                    msg = utils.get_reading(reading, dt)
-            except ValueError:
-                msg = "Invalid  date format. Please provide date in format YYYY-MM-DD"
-        else:
             msg = utils.get_reading(reading)
         self.__answer_callback_query(update)
         self.__send_message(update, context, msg, reply_markup=self.main_menu_keyboard())
@@ -238,19 +229,19 @@ class SoberSerenity:
                   f'daily notification with updated time.</i>'
             self.__send_message(update, context, message=msg)
         else:
-            try:
+            inp = update.message.text.split()
+            if len(inp) == 3:
                 inp = update.message.text.split()
                 inp = f'{inp[1]} {inp[2]}'
                 time_local = utils.convert_str_to_datetime(inp)
                 offset = utils.get_time_offset(user['UserID'])
                 time_utc = utils.convert_local_time_to_utc_time(time_local, offset)
-                key = list(context.user_data.keys())[0] if context.user_data else 'KeyNotFound'
-                user = context.user_data.get(key, {})
+                user = self.__get_user(update, context)
                 context.job_queue.run_daily(self.notification_callback, days=tuple(range(7)), time=time_utc,
                                             context=user['UserID'], name=str(user['UserID']))
                 self.__send_message(update, context, message=f'Great {user["FirstName"]}, I have enabled daily '
                                                              f'notifications for: {time_local.time()}')
-            except IndexError:
+            else:
                 msg = f'Sorry {user["FirstName"]}, I don\'t understand that date time format. Please provide date ' \
                       f'time in format "YYYY-MM-DD HH:MM:SS" with current date'
                 self.__send_message(update, context, message=msg)
@@ -285,7 +276,7 @@ class SoberSerenity:
     @staticmethod
     def notification_callback(context: CallbackContext) -> None:
         """Notification callback"""
-        user_chat_id = context.job.context
+        user_chat_id = int(context.job.context)
         user = utils.get_user(user_chat_id)
         if user['CleanDateTime']:
             quote = utils.get_random_motivational_str()
@@ -355,7 +346,8 @@ class SoberSerenity:
             """
             Callback Query Handlers
 
-            :return: Callback query handlers as an enum in the format KEY_WORD -> CallbackQueryHandler(callback, pattern)
+            :return: Callback query handlers as an enum in the format
+                     KEY_WORD -> CallbackQueryHandler(callback, pattern)
             """
             Callback_Query_Handler = namedtuple('CallbackQueryHandler', 'callback pattern')
             callback_keys = ["MAIN_MENU", "CLEAN_TIME", "READINGS_MENU", "PRAYERS_MENU", "READINGS", "PRAYERS"]

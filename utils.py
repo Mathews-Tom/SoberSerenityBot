@@ -156,6 +156,7 @@ def update_user_utc_time_offset(user_id: int, utc_offset: str) -> bool:
     :param utc_offset: UTC offset string
     :return: True if UTC offset was updated, otherwise False
     """
+
     def check_offset_format_is_correct(offset: str):
         return len(offset.split(':')[0]) == 3 and len(offset.split(':')[1]) == 2
 
@@ -192,9 +193,13 @@ def convert_str_to_datetime(str_date: str) -> Union[datetime.datetime, None]:
         sc = '00:00:00'
     else:
         dt, sc = str_date.split()
+    if len(dt.split('-')) != 3 or len(sc.split('-')) != 3:
+        return None
     yr, mo, dy = dt.split('-')
     hr, mn, sc = sc.split(':')
-    if len(yr) != 4 or len(mo) > 2 or len(dy) > 2 or len(hr) > 2 or len(mn) > 2 or len(sc) > 2:
+    itr = iter([mo, dy, hr, mn, sc])
+    no_char_accepted = 2
+    if len(yr) != 4 or not any(len(elem) > no_char_accepted for elem in itr):
         return None
     yr, mo, dy, hr, mn, sc = [int(x) for x in [yr, mo, dy, hr, mn, sc]]
     return datetime.datetime(yr, mo, dy, hr, mn, sc)
