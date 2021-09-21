@@ -10,8 +10,7 @@ from telegram import (
     InlineKeyboardButton,
     InlineKeyboardMarkup,
     Update,
-    ReplyMarkup,
-    ParseMode,
+    ParseMode, ReplyMarkup,
 )
 from telegram.ext import (
     Updater,
@@ -27,6 +26,7 @@ from utils import MenuElements
 
 
 class SoberSerenity:
+    Bot_UCM = namedtuple('Bot_UCM', 'update context message')
 
     def __init__(self, token):
         self.updater = Updater(token=token)
@@ -164,7 +164,7 @@ class SoberSerenity:
             msg = f'{user["FirstName"]}, you haven\'t set your profile yet. Please set user profile with clean date' \
                   f' to get clean time data.'
         self.__answer_callback_query(update)
-        self.__send_message(update, context, msg, reply_markup=self.main_menu_keyboard())
+        self.__send_message(self.Bot_UCM(update, context, msg), reply_markup=self.main_menu_keyboard())
 
     def readings(self, update: Update, context: CallbackContext) -> None:
         """Get reading for today [default] or a specific date [user input]."""
@@ -182,7 +182,7 @@ class SoberSerenity:
             reading = utils.get_menu_element_from_chr(ch).value.name
             msg = utils.get_reading(reading)
         self.__answer_callback_query(update)
-        self.__send_message(update, context, msg, reply_markup=self.main_menu_keyboard())
+        self.__send_message(self.Bot_UCM(update, context, msg), reply_markup=self.main_menu_keyboard())
 
     def prayers(self, update: Update, context: CallbackContext) -> None:
         """Get prayer"""
@@ -197,14 +197,14 @@ class SoberSerenity:
         else:
             msg = utils.get_prayer(prayer.value.name)
         self.__answer_callback_query(update)
-        self.__send_message(update, context, msg, reply_markup=self.main_menu_keyboard())
+        self.__send_message(self.Bot_UCM(update, context, msg), reply_markup=self.main_menu_keyboard())
 
     def profile(self, update: Update, context: CallbackContext):
         """Get user profile"""
         user = self.__get_user(update, context)
         user_job = self.__get_daily_notification(context, user['UserID'])
         msg = f'{user["FirstName"]}, I know the following about you\n{utils.get_user_profile(user, user_job)}'
-        self.__send_message(update, context, message=msg)
+        self.__send_message(self.Bot_UCM(update, context, msg))
 
     def set_utc_offset(self, update: Update, context: CallbackContext) -> None:
         """Set UTC offset"""
@@ -212,10 +212,11 @@ class SoberSerenity:
         inp = update.message.text.split()
         if len(inp) == 2:
             if utils.update_user_utc_time_offset(user['UserID'], inp[1]):
-                self.__send_message(update, context, message=f'User time offset set to: {inp[1]}')
+                msg = f'User time offset set to: {inp[1]}'
+                self.__send_message(self.Bot_UCM(update, context, msg))
             else:
-                self.__send_message(update, context,
-                                    message='Invalid offset format. Please provide offset in the format "+/-HH:MM"')
+                msg = 'Invalid offset format. Please provide offset in the format "+/-HH:MM"'
+                self.__send_message(self.Bot_UCM(update, context, msg))
 
     def enable_daily_notification(self, update: Update, context: CallbackContext):
         """Enable daily notifications for clean time at user specified time"""
@@ -227,7 +228,7 @@ class SoberSerenity:
             msg = f'{user["FirstName"]}, your daily notification is already enabled for user for: ' \
                   f'{notification_time.time()}.\n<i>To update notification time, first disable and then enable ' \
                   f'daily notification with updated time.</i>'
-            self.__send_message(update, context, message=msg)
+            self.__send_message(self.Bot_UCM(update, context, msg))
         else:
             inp = update.message.text.split()
             if len(inp) == 3:
@@ -239,12 +240,12 @@ class SoberSerenity:
                 user = self.__get_user(update, context)
                 context.job_queue.run_daily(self.notification_callback, days=tuple(range(7)), time=time_utc,
                                             context=user['UserID'], name=str(user['UserID']))
-                self.__send_message(update, context, message=f'Great {user["FirstName"]}, I have enabled daily '
-                                                             f'notifications for: {time_local.time()}')
+                msg = f'Great {user["FirstName"]}, I have enabled daily notifications for: {time_local.time()}'
+                self.__send_message(self.Bot_UCM(update, context, msg))
             else:
                 msg = f'Sorry {user["FirstName"]}, I don\'t understand that date time format. Please provide date ' \
                       f'time in format "YYYY-MM-DD HH:MM:SS" with current date'
-                self.__send_message(update, context, message=msg)
+                self.__send_message(self.Bot_UCM(update, context, msg))
 
     def disable_daily_notification(self, update: Update, context: CallbackContext):
         """Disable daily notifications for clean time"""
@@ -255,11 +256,11 @@ class SoberSerenity:
                                                                      utils.get_time_offset(user['UserID']))
             user_job[0].schedule_removal()
             msg = f'{user["FirstName"]}, your daily notification for {notification_time.time()} has been disabled'
-            self.__send_message(update, context, message=msg)
+            self.__send_message(self.Bot_UCM(update, context, msg))
         else:
             msg = f'{user["FirstName"]}, you don\'t have daily notification enabled yet. Use ' \
                   f'"/enable_daily_notification" to enable daily notifications'
-            self.__send_message(update, context, message=msg)
+            self.__send_message(self.Bot_UCM(update, context, msg))
 
     def __get_user(self, update: Update, context: CallbackContext) -> dict:
         """Get user from user_data in context"""
@@ -288,7 +289,7 @@ class SoberSerenity:
         """Displays info on how to use the bot."""
         # update.message.reply_text("Use /start or /menu to use this bot.")
         msg = "Use /start or /menu to use this bot."
-        self.__send_message(update, context, msg)
+        self.__send_message(self.Bot_UCM(update, context, msg))
 
     @staticmethod
     def unknown_command(update: Update, context: CallbackContext) -> None:
@@ -298,7 +299,7 @@ class SoberSerenity:
     def error_handler(self, update: Update, context: CallbackContext) -> None:
         msg = "Sorry, something went wrong!!!😟😟😟"
         try:
-            self.__send_message(update, context, msg)
+            self.__send_message(self.Bot_UCM(update, context, msg))
             print(f'Update {update} caused error {context.error}')
         except AttributeError:
             print(msg)
@@ -310,13 +311,12 @@ class SoberSerenity:
         except AttributeError:
             pass
 
-    def __send_message(self, update: Update, context: CallbackContext, message: str,
-                       parse_mode: ParseMode = ParseMode.HTML, reply_markup: ReplyMarkup = None) -> None:
-        user = self.__get_user(update, context)
-        context.bot.sendMessage(chat_id=user['UserID'],
-                                text=message,
-                                parse_mode=parse_mode,
-                                reply_markup=reply_markup)
+    def __send_message(self, bot_ucm: Bot_UCM, reply_markup: ReplyMarkup = None) -> None:
+        user = self.__get_user(bot_ucm.update, bot_ucm.context)
+        bot_ucm.context.bot.sendMessage(chat_id=user['UserID'],
+                                        text=bot_ucm.message,
+                                        parse_mode=ParseMode.HTML,
+                                        reply_markup=reply_markup)
 
     def run(self):
         def create_command_handlers():

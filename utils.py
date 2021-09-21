@@ -240,8 +240,6 @@ def get_clean_time(clean_date_time) -> str:
                   f'{clean_time_str_helper(dt_delta.seconds, "second")}'
         return fmt_str.strip()
 
-    if not clean_date_time:
-        return "User profile not set. Set user profile to get clean time data."
     date_time_delta = relativedelta(datetime.datetime.today(), clean_date_time)
     clean_time_str = create_clean_time_str(date_time_delta)
     days_since = (datetime.datetime.today() - clean_date_time).days
