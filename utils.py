@@ -171,13 +171,13 @@ def convert_str_to_datetime(str_date: str) -> Union[datetime.datetime, None]:
         sc = '00:00:00'
     else:
         dt, sc = str_date.split()
-    if len(dt.split('-')) != 3 or len(sc.split('-')) != 3:
+    if len(dt.split('-')) != 3 or len(sc.split(':')) != 3:
         return None
     yr, mo, dy = dt.split('-')
     hr, mn, sc = sc.split(':')
     itr = iter([mo, dy, hr, mn, sc])
     no_char_accepted = 2
-    if len(yr) != 4 or not any(len(elem) > no_char_accepted for elem in itr):
+    if len(yr) != 4 or any(len(elem) > no_char_accepted for elem in itr):
         return None
     yr, mo, dy, hr, mn, sc = [int(x) for x in [yr, mo, dy, hr, mn, sc]]
     return datetime.datetime(yr, mo, dy, hr, mn, sc)
