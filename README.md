@@ -1,5 +1,6 @@
 # Sober Serenity Bot ⚖️🕊⚖️🕊⚖️🕊️
-## Introduction SoberSerenityBot uses python-telegram-bot. The bot is active on telegram under the handle [@SoberSerenityBot](https://t.me/SoberSerenityBot)  
+## Introduction
+SoberSerenityBot uses python-telegram-bot. The bot is active on telegram under the handle [@SoberSerenityBot](https://t.me/SoberSerenityBot)  
   
 Hi, I am the Sober Serenity Bot. I am here to help and guide you through your process of Sobriety, be it for yourself or if you are trying to help out someone you care about.   
   
