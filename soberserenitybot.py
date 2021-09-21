@@ -36,7 +36,10 @@ class SoberSerenity:
     def main_menu_keyboard():
         """Main menu keyboard"""
         keyboard = [
-            [InlineKeyboardButton("⏳ Clean Time ⏳", callback_data=str(MenuElements.CLEAN_TIME.value.data))],
+            [
+                InlineKeyboardButton("👤 Profile 👤", callback_data=str(MenuElements.PROFILE.value.data)),
+                InlineKeyboardButton("⏳ Clean Time ⏳", callback_data=str(MenuElements.CLEAN_TIME.value.data))
+            ],
             [
                 InlineKeyboardButton("📚 Readings 📚", callback_data=str(MenuElements.READINGS.value.data)),
                 InlineKeyboardButton("🙏 Prayers 🙏", callback_data=str(MenuElements.PRAYERS.value.data)),
@@ -324,18 +327,19 @@ class SoberSerenity:
             :return: Command handlers as an enum in the format KEY_WORD -> CommandHandler(command, callback)
             """
             Command_Handler = namedtuple('CommandHandler', 'command callback')
-            command_keys = ["START", "MENU", "CLEAN_TIME", "READINGS", "PRAYERS", "DAILY_REFLECTION", "JUST_FOR_TODAY",
-                            "LORDS_PRAYER", "SERENITY_PRAYER", "ST_JOSEPHS_PRAYER", "TENDER_AND_COMPASSIONATE_GOD",
-                            "THIRD_STEP_PRAYER", "SEVENTH_STEP_PRAYER", "ELEVENTH_STEP_PRAYER", "PROFILE",
-                            "ENABLE_DAILY_NOTIFICATION", "DISABLE_DAILY_NOTIFICATION", "SET_UTC_OFFSET", "HELP"]
+            command_keys = ["START", "MENU", "PROFILE", "CLEAN_TIME", "READINGS", "PRAYERS", "DAILY_REFLECTION",
+                            "JUST_FOR_TODAY", "LORDS_PRAYER", "SERENITY_PRAYER", "ST_JOSEPHS_PRAYER",
+                            "TENDER_AND_COMPASSIONATE_GOD", "THIRD_STEP_PRAYER", "SEVENTH_STEP_PRAYER",
+                            "ELEVENTH_STEP_PRAYER", "ENABLE_DAILY_NOTIFICATION", "DISABLE_DAILY_NOTIFICATION",
+                            "SET_UTC_OFFSET", "HELP"]
             commands_name = ['start', 'menu', 'clean_time', 'daily_reflection', 'just_for_today', 'lords_prayer',
                              'serenity_prayer', 'st_josephs_prayer', 'tender_and_compassionate_god',
                              'third_step_prayer',
                              'seventh_step_prayer', 'eleventh_step_prayer', 'profile', 'enable_daily_notification',
                              'disable_daily_notification', 'set_utc_offset', 'help']
-            command_callbacks = [self.start, self.start, self.clean_time, self.readings, self.readings, self.prayers,
+            command_callbacks = [self.start, self.start, self.profile, self.clean_time, self.readings, self.readings,
                                  self.prayers, self.prayers, self.prayers, self.prayers, self.prayers, self.prayers,
-                                 self.profile, self.enable_daily_notification, self.disable_daily_notification,
+                                 self.prayers, self.enable_daily_notification, self.disable_daily_notification,
                                  self.set_utc_offset, self.help_command]
             return Enum('Commands', {k: Command_Handler(command=v1, callback=v2)
                                      for k, v1, v2 in zip(command_keys, commands_name, command_callbacks)})
@@ -348,9 +352,10 @@ class SoberSerenity:
                      KEY_WORD -> CallbackQueryHandler(callback, pattern)
             """
             Callback_Query_Handler = namedtuple('CallbackQueryHandler', 'callback pattern')
-            callback_keys = ["MAIN_MENU", "CLEAN_TIME", "READINGS_MENU", "PRAYERS_MENU", "READINGS", "PRAYERS"]
-            callback_name = [self.main_menu, self.clean_time, self.readings_menu, self.prayers_menu, self.readings,
-                             self.prayers]
+            callback_keys = ["MAIN_MENU", "PROFILE", "CLEAN_TIME", "READINGS_MENU", "PRAYERS_MENU", "READINGS",
+                             "PRAYERS"]
+            callback_name = [self.main_menu, self.profile, self.clean_time, self.readings_menu, self.prayers_menu,
+                             self.readings, self.prayers]
             # Reading patterns
             readings_pattern = f'({MenuElements.DAILY_REFLECTION.value.data}' \
                                f'|{MenuElements.JUST_FOR_TODAY.value.data})'
@@ -362,9 +367,9 @@ class SoberSerenity:
                               f'|{MenuElements.THIRD_STEP_PRAYER.value.data}' \
                               f'|{MenuElements.SEVENTH_STEP_PRAYER.value.data}' \
                               f'|{MenuElements.ELEVENTH_STEP_PRAYER.value.data})'
-            callback_pattern = [MenuElements.MAIN_MENU.value.data, MenuElements.CLEAN_TIME.value.data,
-                                MenuElements.READINGS.value.data, MenuElements.PRAYERS.value.data, readings_pattern,
-                                prayers_pattern]
+            callback_pattern = [MenuElements.MAIN_MENU.value.data, MenuElements.PROFILE.value.data,
+                                MenuElements.CLEAN_TIME.value.data, MenuElements.READINGS.value.data,
+                                MenuElements.PRAYERS.value.data, readings_pattern, prayers_pattern]
 
             return Enum('CallbackQueries', {k: Callback_Query_Handler(callback=v1, pattern=v2)
                                             for k, v1, v2 in zip(callback_keys, callback_name, callback_pattern)})

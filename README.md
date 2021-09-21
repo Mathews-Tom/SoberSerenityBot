@@ -25,6 +25,7 @@ Hi, I am the Sober Serenity Bot. I am here to help and guide you through your pr
 Following commands are implemented.  
   
 - menu - Main menu  
+- profile - View user profile  
 - clean_time - Get your Clean Time  
 - daily_reflection - Get today's "Daily Reflections" reading  
 - just_for_today - Get today's "Just For Today" reading  
@@ -34,8 +35,7 @@ Following commands are implemented.
 - tender_and_compassionate_god - Tender And Compassionate God  
 - third_step_prayer - Third Step Prayer  
 - seventh_step_prayer - Seventh Step Prayer  
-- eleventh_step_prayer - Eleventh Step Prayer  
-- profile - View user profile  
+- eleventh_step_prayer - Eleventh Step Prayer   
 - enable_daily_notification - Enable daily notification  
 - disable_daily_notification - Disable daily notification  
 - set_utc_offset - Set UTC Offset  

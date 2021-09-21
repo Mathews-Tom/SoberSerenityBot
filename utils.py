@@ -20,13 +20,13 @@ def create_menu_elements():
 
     :return: Menu elements as an enum in the format KEY_WORD -> Vales(char, KeyWord)
     """
-    menu_keys = ["MAIN_MENU", "CLEAN_TIME", "READINGS", "PRAYERS", "DAILY_REFLECTION", "JUST_FOR_TODAY", "LORDS_PRAYER",
-                 "SERENITY_PRAYER", "ST_JOSEPHS_PRAYER", "TENDER_AND_COMPASSIONATE_GOD", "THIRD_STEP_PRAYER",
-                 "SEVENTH_STEP_PRAYER", "ELEVENTH_STEP_PRAYER"]
+    menu_keys = ["MAIN_MENU", "PROFILE", "CLEAN_TIME", "READINGS", "PRAYERS", "DAILY_REFLECTION", "JUST_FOR_TODAY",
+                 "LORDS_PRAYER", "SERENITY_PRAYER", "ST_JOSEPHS_PRAYER", "TENDER_AND_COMPASSIONATE_GOD",
+                 "THIRD_STEP_PRAYER", "SEVENTH_STEP_PRAYER", "ELEVENTH_STEP_PRAYER"]
     menu_values_chr = [chr(ch) for ch in range(len(menu_keys))]
-    menu_values_str = ["MainMenu", "CleanTime", "Readings", "Prayers", "DailyReflection", "JustForToday", "LordsPrayer",
-                       "SerenityPrayer", "StJosephsPrayer", "TenderAndCompassionateGod", "ThirdStepPrayer",
-                       "SeventhStepPrayer", "EleventhStepPrayer"]
+    menu_values_str = ["MainMenu", "Profile", "CleanTime", "Readings", "Prayers", "DailyReflection", "JustForToday",
+                       "LordsPrayer", "SerenityPrayer", "StJosephsPrayer", "TenderAndCompassionateGod",
+                       "ThirdStepPrayer", "SeventhStepPrayer", "EleventhStepPrayer"]
     values = namedtuple('Values', 'data name')
     return Enum('MenuElements', {k: values(data=v1, name=v2)
                                  for k, v1, v2 in zip(menu_keys, menu_values_chr, menu_values_str)})
