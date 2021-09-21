@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-
+import datetime
 import os
 from collections import namedtuple
 from enum import Enum
@@ -180,7 +180,10 @@ class SoberSerenity:
         else:
             ch = update.callback_query.data
             reading = utils.get_menu_element_from_chr(ch).value.name
-            msg = utils.get_reading(reading)
+            user = self.__get_user(update, context)
+            local_dt = utils.convert_utc_time_to_local_time(datetime.datetime.today(),
+                                                            utils.get_time_offset(user['UserID']))
+            msg = utils.get_reading(reading, local_dt)
         self.__answer_callback_query(update)
         self.__send_message(self.Bot_UCM(update, context, msg), reply_markup=self.main_menu_keyboard())
 
@@ -201,7 +204,7 @@ class SoberSerenity:
         user = self.__get_user(update, context)
         user_job = self.__get_daily_notification(context, user['UserID'])
         msg = f'{user["FirstName"]}, I know the following about you\n{utils.get_user_profile(user, user_job)}'
-        self.__send_message(self.Bot_UCM(update, context, msg))
+        self.__send_message(self.Bot_UCM(update, context, msg), reply_markup=self.main_menu_keyboard())
 
     def set_utc_offset(self, update: Update, context: CallbackContext) -> None:
         """Set UTC offset"""
@@ -226,7 +229,6 @@ class SoberSerenity:
             msg = f'{user["FirstName"]}, your daily notification is already enabled for user for: ' \
                   f'{notification_time.time()}.\n<i>To update notification time, first disable and then enable ' \
                   f'daily notification with updated time.</i>'
-            self.__send_message(self.Bot_UCM(update, context, msg))
         else:
             inp = update.message.text.split()
             if len(inp) == 3:
@@ -239,11 +241,10 @@ class SoberSerenity:
                 context.job_queue.run_daily(self.notification_callback, days=tuple(range(7)), time=time_utc,
                                             context=user['UserID'], name=str(user['UserID']))
                 msg = f'Great {user["FirstName"]}, I have enabled daily notifications for: {time_local.time()}'
-                self.__send_message(self.Bot_UCM(update, context, msg))
             else:
                 msg = f'Sorry {user["FirstName"]}, I don\'t understand that date time format. Please provide date ' \
                       f'time in format "YYYY-MM-DD HH:MM:SS" with current date'
-                self.__send_message(self.Bot_UCM(update, context, msg))
+        self.__send_message(self.Bot_UCM(update, context, msg), reply_markup=self.main_menu_keyboard())
 
     def disable_daily_notification(self, update: Update, context: CallbackContext):
         """Disable daily notifications for clean time"""
@@ -254,11 +255,10 @@ class SoberSerenity:
                                                                      utils.get_time_offset(user['UserID']))
             user_job[0].schedule_removal()
             msg = f'{user["FirstName"]}, your daily notification for {notification_time.time()} has been disabled'
-            self.__send_message(self.Bot_UCM(update, context, msg))
         else:
             msg = f'{user["FirstName"]}, you don\'t have daily notification enabled yet. Use ' \
                   f'"/enable_daily_notification" to enable daily notifications'
-            self.__send_message(self.Bot_UCM(update, context, msg))
+        self.__send_message(self.Bot_UCM(update, context, msg), reply_markup=self.main_menu_keyboard())
 
     def __get_user(self, update: Update, context: CallbackContext) -> dict:
         """Get user from user_data in context"""
