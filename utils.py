@@ -22,11 +22,11 @@ def create_menu_elements():
     """
     menu_keys = ["MAIN_MENU", "CLEAN_TIME", "READINGS", "PRAYERS", "DAILY_REFLECTION", "JUST_FOR_TODAY", "LORDS_PRAYER",
                  "SERENITY_PRAYER", "ST_JOSEPHS_PRAYER", "TENDER_AND_COMPASSIONATE_GOD", "THIRD_STEP_PRAYER",
-                 "SEVENTH_STEP_PRAYER", "ELEVENTH_STEP_PRAYER", "INVALID"]
+                 "SEVENTH_STEP_PRAYER", "ELEVENTH_STEP_PRAYER"]
     menu_values_chr = [chr(ch) for ch in range(len(menu_keys))]
     menu_values_str = ["MainMenu", "CleanTime", "Readings", "Prayers", "DailyReflection", "JustForToday", "LordsPrayer",
                        "SerenityPrayer", "StJosephsPrayer", "TenderAndCompassionateGod", "ThirdStepPrayer",
-                       "SeventhStepPrayer", "EleventhStepPrayer", "Invalid"]
+                       "SeventhStepPrayer", "EleventhStepPrayer"]
     values = namedtuple('Values', 'data name')
     return Enum('MenuElements', {k: values(data=v1, name=v2)
                                  for k, v1, v2 in zip(menu_keys, menu_values_chr, menu_values_str)})
@@ -36,24 +36,11 @@ def create_menu_elements():
 MenuElements = create_menu_elements()
 
 
-def get_menu_element_from_chr(ch) -> MenuElements:
+def get_menu_element_from_chr(ch) -> Union[MenuElements, None]:
     for me in MenuElements:
         if ch == me.value[0]:
             return me
-    return MenuElements.INVALID
-
-
-class Users(object):
-    """User profile class"""
-
-    def __init__(self, user_dict):
-        """Constructor"""
-        for key in user_dict:
-            setattr(self, key, user_dict[key])
-
-    def __repr__(self):
-        """Get Users class attributes"""
-        return str([x for x in dir(self) if "__" not in x])
+    return None
 
 
 def check_user_exists(user_id: int):
@@ -68,7 +55,10 @@ def check_user_exists(user_id: int):
 
 
 def create_user(chat: Chat) -> Chat:
-    """Create new user profile and store in Users.json file"""
+    """Create new user profile and store in Users.json file. Return user if user exists"""
+    if check_user_exists(chat.id):
+        return get_user(chat.id)
+
     with open(f'{WORKING_DIR}/JSONs/Users.json', 'r') as fhd:
         data = json.load(fhd)
         new_data = {str(chat.id): {
@@ -80,12 +70,13 @@ def create_user(chat: Chat) -> Chat:
             "CleanDateTime": "",
         }}
     data.update(new_data)
+
     with open(f'{WORKING_DIR}/JSONs/Users.json', 'w') as fhd:
         json.dump(data, fhd, indent=4)
     return new_data[str(chat.id)]
 
 
-def get_user(user_id: int) -> dict:
+def get_user(user_id: int) -> Chat:
     """
     Get user profile
 
@@ -96,22 +87,9 @@ def get_user(user_id: int) -> dict:
         with open(f'{WORKING_DIR}/JSONs/Users.json', 'r') as fhd:
             data = json.load(fhd)
             user = data[str(user_id)]
-
     else:
         user = None
     return user
-
-
-def get_user_ids():
-    """
-    Get all registered users in the database
-
-    :return: List of user IDs registered in the database
-    """
-    with open(f'{WORKING_DIR}/JSONs/Users.json', 'r') as fhd:
-        data = json.load(fhd)
-    user_ids = data.keys
-    return user_ids
 
 
 def get_time_offset(user_id: int) -> relativedelta:
@@ -205,7 +183,7 @@ def convert_str_to_datetime(str_date: str) -> Union[datetime.datetime, None]:
     return datetime.datetime(yr, mo, dy, hr, mn, sc)
 
 
-def get_clean_time(clean_date_time) -> str:
+def get_clean_time(clean_date_time: datetime.datetime) -> str:
     """
     Get clean time based on user specified clean date
 
@@ -213,7 +191,7 @@ def get_clean_time(clean_date_time) -> str:
     :return: Clean time string
     """
 
-    def create_clean_time_str(dt_delta) -> str:
+    def build_clean_time_str(dt_delta: relativedelta) -> str:
         """
         Format and create clean time string
 
@@ -221,7 +199,7 @@ def get_clean_time(clean_date_time) -> str:
         :return: Cleaned string representation of Clean Time
         """
 
-        def clean_time_str_helper(x: int, frame: str) -> str:
+        def format_string(x: int, frame: str) -> str:
             """
             Helper function to format individual time frames
 
@@ -233,17 +211,16 @@ def get_clean_time(clean_date_time) -> str:
 
         # Number of days need correction as relativedelta calculates weeks and days separately and not together.
         days_corrected = dt_delta.days - dt_delta.weeks * 7
-        fmt_str = f'{clean_time_str_helper(dt_delta.years, "year")}{clean_time_str_helper(dt_delta.months, "month")}' \
-                  f'{clean_time_str_helper(dt_delta.weeks, "week")}{clean_time_str_helper(days_corrected, "day")}' \
-                  f'and{clean_time_str_helper(dt_delta.hours, "hour")}' \
-                  f'{clean_time_str_helper(dt_delta.minutes, "minute")}' \
-                  f'{clean_time_str_helper(dt_delta.seconds, "second")}'
+        fmt_str = f'{format_string(dt_delta.years, "year")}{format_string(dt_delta.months, "month")}' \
+                  f'{format_string(dt_delta.weeks, "week")}{format_string(days_corrected, "day")}' \
+                  f'and{format_string(dt_delta.hours, "hour")}{format_string(dt_delta.minutes, "minute")}' \
+                  f'{format_string(dt_delta.seconds, "second")}'
         return fmt_str.strip()
 
     date_time_delta = relativedelta(datetime.datetime.today(), clean_date_time)
-    clean_time_str = create_clean_time_str(date_time_delta)
+    clean_time_str = build_clean_time_str(date_time_delta)
     days_since = (datetime.datetime.today() - clean_date_time).days
-    return f'Yaay!!!👏👏👏, you have {clean_time_str} or {days_since} days of clean time.'
+    return f'Yaay!!! 👏👏👏, you have {clean_time_str} or {days_since} days of clean time.'
 
 
 def get_reading(book: str, date: datetime.datetime = datetime.datetime.today()) -> str:

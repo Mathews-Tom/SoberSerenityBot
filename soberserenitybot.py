@@ -89,7 +89,7 @@ class SoberSerenity:
     @staticmethod
     def main_menu_message():
         """Main menu message"""
-        return 'Hi, I am the Sober Serenity Bot ⚖️🕊⚖️🕊⚖️🕊️ \n\n\nI am here to help and guide you through your ' \
+        return 'Hi, I am the Sober Serenity Bot. ⚖️🕊⚖️🕊⚖️🕊️ \n\n\nI am here to help and guide you through your ' \
                'process of Sobriety, be it for yourself or if you are trying to help out someone you care about. ' \
                'Here are few things I can be of help to you. Please chose :: '
 
@@ -97,39 +97,37 @@ class SoberSerenity:
     def readings_menu_message():
         """Reading menu message"""
         return 'Readings help to feel comforted during our journey of recovery and sobriety and to gain strength. ' \
-               'We learn that today is a  gift with no  guarantees.  With this in  mind, the insignificance  of the ' \
-               'past and future, and the importance  of our actions today,  become real  for us. This  simplifies ' \
-               'our lives. '
+               'We learn that today is a gift with no guarantees. With this in mind, the insignificance of the past ' \
+               'and future, and the importance of our actions today, become real for us. This simplifies our lives.'
 
     @staticmethod
     def prayers_menu_message():
         """Prayers menu message"""
-        return 'On the onset of our journey towards sobriety we made  a decision to turn our lives over  to  the care' \
-               '  of a Higher  Power. This  surrender  relieves the burden of the past and fear of the future, and' \
-               ' the gift of  today is now in proper  perspective. We accept and enjoy life as  it  is right  now. ' \
-               'When we refuse to  accept  the  reality of today we are denying our faith in our Higher Power, which' \
-               ' can  only bring  more suffering. Prayer gives you a connection to something greater than yourself, ' \
-               'which does wonders for your emotional well-being. It provides a greater sense of purpose, betters ' \
-               'your mood, and helps you cope with and overcome the difficulties life brings your way. Just as it’s ' \
-               'important to exercise your body to stay healthy and in shape, the same is true for your soul, you ' \
-               'need to practice spiritual exercises to keep your soul in shape.'
+        return 'On the onset of our journey towards sobriety we made a decision to turn our lives over to the care ' \
+               'of a Higher Power. This surrender relieves the burden of the past and fear of the future, and the ' \
+               'gift of today is now in proper perspective. We accept and enjoy life as it is right now. When we ' \
+               'refuse to accept the reality of today we are denying our faith in our Higher Power, which can only ' \
+               'bring more suffering. Prayer gives you a connection to something greater than yourself, which does ' \
+               'wonders for your emotional well-being. It provides a greater sense of purpose, betters your mood, ' \
+               'and helps you cope with and overcome the difficulties life brings your way. Just as it’s important ' \
+               'to exercise your body to stay healthy and in shape, the same is true for your soul, you need to ' \
+               'practice spiritual exercises to keep your soul in shape.'
 
     @staticmethod
     def update_context_with_user_data(update: Update, context: CallbackContext) -> None:
         """Update context.user_data with UserProfile data"""
-        # Update needed only when context doesn't contain user_data
-        if not context.user_data:
-            if hasattr(update.callback_query, 'message'):
-                chat = update.callback_query.message.chat
-            else:
-                chat = update.message.chat
+        # Update needed only when context.user_data is empty
+        if context.user_data:
+            return
 
-            if utils.check_user_exists(chat.id):
-                user = utils.get_user(chat.id)
-            else:
-                user = utils.create_user(chat)
-            key = str(uuid4())
-            context.user_data[key] = user
+        if hasattr(update.callback_query, 'message'):
+            chat = update.callback_query.message.chat
+        else:
+            chat = update.message.chat
+
+        user = utils.create_user(chat)
+        key = str(uuid4())
+        context.user_data[key] = user
 
     def start(self, update: Update, context: CallbackContext) -> None:
         """Sends a message with three inline buttons attached."""
@@ -174,7 +172,9 @@ class SoberSerenity:
             reading = MenuElements[inp[0][1:].upper()].value.name
             dt = utils.convert_str_to_datetime(inp[1])
             if not dt:
-                msg = 'Invalid  date format. Please provide date in format "YYYY-MM-DD HH:MM:SS" or "YYY-MM-DD"'
+                user = self.__get_user(update, context)
+                msg = f'Sorry {user["FirstName"]}, I don\'t understand that date time format. Please provide date ' \
+                      f'time in format "YYYY-MM-DD HH:MM:SS" or "YYY-MM-DD"'
             else:
                 msg = utils.get_reading(reading, dt)
         else:
@@ -187,15 +187,12 @@ class SoberSerenity:
     def prayers(self, update: Update, context: CallbackContext) -> None:
         """Get prayer"""
         self.update_context_with_user_data(update, context)
-        try:
+        if hasattr(update.message, 'text'):
             prayer = MenuElements[update.message.text[1:].upper()]
-        except AttributeError:
+        else:
             ch = update.callback_query.data
             prayer = utils.get_menu_element_from_chr(ch)
-        if prayer is MenuElements.INVALID:
-            msg = "Sorry, something went wrong!!!😟😟😟"
-        else:
-            msg = utils.get_prayer(prayer.value.name)
+        msg = utils.get_prayer(prayer.value.name)
         self.__answer_callback_query(update)
         self.__send_message(self.Bot_UCM(update, context, msg), reply_markup=self.main_menu_keyboard())
 
@@ -215,7 +212,8 @@ class SoberSerenity:
                 msg = f'User time offset set to: {inp[1]}'
                 self.__send_message(self.Bot_UCM(update, context, msg))
             else:
-                msg = 'Invalid offset format. Please provide offset in the format "+/-HH:MM"'
+                msg = f'Sorry {user["FirstName"]}, I don\'t understand that offset format. Please provide offset ' \
+                      f'in the format "+/-HH:MM"'
                 self.__send_message(self.Bot_UCM(update, context, msg))
 
     def enable_daily_notification(self, update: Update, context: CallbackContext):
@@ -281,9 +279,9 @@ class SoberSerenity:
         user = utils.get_user(user_chat_id)
         if user['CleanDateTime']:
             quote = utils.get_random_motivational_str()
-            clean_date_time = utils.convert_str_to_datetime(user['CleanDateTime'])
+            clean_date_time = utils.convert_str_to_datetime(str(user['CleanDateTime']))
             msg = utils.get_clean_time(clean_date_time)
-            context.bot.send_message(chat_id=user['UserID'], text=f"{quote}\n\n{msg}")
+            context.bot.send_message(chat_id=user['UserID'], text=f'{quote}\n\n{msg}')
 
     def help_command(self, update: Update, context: CallbackContext) -> None:
         """Displays info on how to use the bot."""
