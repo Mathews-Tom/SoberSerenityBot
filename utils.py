@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-
 import datetime
 import json
 import os
@@ -68,6 +67,7 @@ def create_user(chat: Chat) -> Chat:
             "LastName": chat.last_name,
             "SubstanceOfChoice": [],
             "CleanDateTime": "",
+            "UTCOffset": ""
         }}
     data.update(new_data)
 
