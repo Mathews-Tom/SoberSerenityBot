@@ -2,3 +2,4 @@ JSONs
 venv
 .idea
 .env
+.DS_Store
