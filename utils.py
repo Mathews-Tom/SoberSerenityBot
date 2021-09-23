@@ -199,6 +199,16 @@ def get_clean_time(clean_date_time: datetime.datetime) -> str:
         :return: Cleaned string representation of Clean Time
         """
 
+        def format_string(x: int, frame: str) -> str:
+            """
+            Helper function to format individual time frames
+
+            :param x: Integer
+            :param frame: Time frame
+            :return: Formatted time string
+            """
+            return '' if x == 0 else f' {x} {frame} ' if x == 1 else f' {x} {frame}s '
+
         # Number of days need correction as relativedelta calculates weeks and days separately and not together.
         days_corrected = dt_delta.days - dt_delta.weeks * 7
         fmt_str = f'{format_string(dt_delta.years, "year")}{format_string(dt_delta.months, "month")}' \
@@ -206,16 +216,6 @@ def get_clean_time(clean_date_time: datetime.datetime) -> str:
                   f'and{format_string(dt_delta.hours, "hour")}{format_string(dt_delta.minutes, "minute")}' \
                   f'{format_string(dt_delta.seconds, "second")}'
         return fmt_str.strip()
-
-    def format_string(x: int, frame: str) -> str:
-        """
-        Helper function to format individual time frames
-
-        :param x: Integer
-        :param frame: Time frame
-        :return: Formatted time string
-        """
-        return '' if x == 0 else f' {x} {frame} ' if x == 1 else f' {x} {frame}s '
 
     date_time_delta = relativedelta(datetime.datetime.today(), clean_date_time)
     clean_time_str = build_clean_time_str(date_time_delta)
