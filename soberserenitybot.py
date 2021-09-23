@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-import datetime
 import os
 from collections import namedtuple
 from enum import Enum
@@ -37,12 +36,12 @@ class SoberSerenity:
         user = get_user(update, context)
         if user['CleanDateTime']:
             clean_date_time = utils.convert_str_to_datetime(user['CleanDateTime'])
-            msg = f'{utils.get_random_motivational_str()}\n\n{utils.get_clean_time(clean_date_time)}'
+            msg = f'{utils.get_random_motivational_str()}\n\n{utils.get_clean_time(clean_date_time, user["UserID"])}'
         else:
             msg = f'{user["FirstName"]}, you haven\'t set your profile yet. Please set user profile with clean date' \
                   f' to get clean time data.'
         answer_callback_query(update)
-        send_message(self.Bot_UCM(update, context, msg), reply_markup=main_menu_keyboard())
+        send_message(self.Bot_UCM(update, context, msg), reply_markup=Menus.main_menu_keyboard())
 
     def readings(self, update: Update, context: CallbackContext) -> None:
         """Get reading for today [default] or a specific date [user input]."""
@@ -50,22 +49,14 @@ class SoberSerenity:
         if hasattr(update.message, 'text'):
             inp = update.message.text.split()
             reading = MenuElements[inp[0][1:].upper()].value.name
-            dt = utils.convert_str_to_datetime(inp[1])
-            if not dt:
-                user = get_user(update, context)
-                msg = f'Sorry {user["FirstName"]}, I don\'t understand that date time format. Please provide date ' \
-                      f'time in format "YYYY-MM-DD HH:MM:SS" or "YYY-MM-DD"'
-            else:
-                msg = utils.get_reading(reading, dt)
         else:
             ch = update.callback_query.data
             reading = utils.get_menu_element_from_chr(ch).value.name
-            user = get_user(update, context)
-            local_dt = utils.convert_utc_time_to_local_time(datetime.datetime.today(),
-                                                            utils.get_time_offset(user['UserID']))
-            msg = utils.get_reading(reading, local_dt)
+        user = get_user(update, context)
+        local_dt = utils.get_user_local_time(user['UserID'])
+        msg = utils.get_reading(reading, local_dt)
         answer_callback_query(update)
-        send_message(self.Bot_UCM(update, context, msg), reply_markup=main_menu_keyboard())
+        send_message(self.Bot_UCM(update, context, msg), reply_markup=Menus.readings_menu_keyboard())
 
     def prayers(self, update: Update, context: CallbackContext) -> None:
         """Get prayer"""
@@ -77,14 +68,14 @@ class SoberSerenity:
             prayer = utils.get_menu_element_from_chr(ch)
         msg = utils.get_prayer(prayer.value.name)
         answer_callback_query(update)
-        send_message(self.Bot_UCM(update, context, msg), reply_markup=main_menu_keyboard())
+        send_message(self.Bot_UCM(update, context, msg), reply_markup=Menus.prayers_menu_keyboard())
 
-    def profile(self, update: Update, context: CallbackContext):
+    def profile(self, update: Update, context: CallbackContext) -> None:
         """Get user profile"""
         user = get_user(update, context)
         user_job = get_daily_notification(context, user['UserID'])
         msg = f'{user["FirstName"]}, I know the following about you\n{utils.get_user_profile(user, user_job)}'
-        send_message(self.Bot_UCM(update, context, msg), reply_markup=main_menu_keyboard())
+        send_message(self.Bot_UCM(update, context, msg), reply_markup=Menus.main_menu_keyboard())
 
     def set_utc_offset(self, update: Update, context: CallbackContext) -> None:
         """Set UTC offset"""
@@ -93,11 +84,12 @@ class SoberSerenity:
         if len(inp) == 2:
             if utils.update_user_utc_time_offset(user['UserID'], inp[1]):
                 msg = f'User time offset set to: {inp[1]}'
-                send_message(self.Bot_UCM(update, context, msg))
             else:
                 msg = f'Sorry {user["FirstName"]}, I don\'t understand that offset format. Please provide offset ' \
                       f'in the format "+/-HH:MM"'
-                send_message(self.Bot_UCM(update, context, msg))
+        else:
+            msg = f'Sorry {user["FirstName"]}, Please include offset in the format "+/-HH:MM" after the command'
+        send_message(self.Bot_UCM(update, context, msg))
 
     def enable_daily_notification(self, update: Update, context: CallbackContext):
         """Enable daily notifications for clean time at user specified time"""
@@ -124,7 +116,7 @@ class SoberSerenity:
             else:
                 msg = f'Sorry {user["FirstName"]}, I don\'t understand that date time format. Please provide date ' \
                       f'time in format "YYYY-MM-DD HH:MM:SS" with current date'
-        send_message(self.Bot_UCM(update, context, msg), reply_markup=main_menu_keyboard())
+        send_message(self.Bot_UCM(update, context, msg), reply_markup=Menus.main_menu_keyboard())
 
     def disable_daily_notification(self, update: Update, context: CallbackContext):
         """Disable daily notifications for clean time"""
@@ -138,7 +130,7 @@ class SoberSerenity:
         else:
             msg = f'{user["FirstName"]}, you don\'t have daily notification enabled yet. Use ' \
                   f'"/enable_daily_notification" to enable daily notifications'
-        send_message(self.Bot_UCM(update, context, msg), reply_markup=main_menu_keyboard())
+        send_message(self.Bot_UCM(update, context, msg), reply_markup=Menus.main_menu_keyboard())
 
     def help_command(self, update: Update, context: CallbackContext) -> None:
         """Displays info on how to use the bot."""
@@ -162,16 +154,14 @@ class SoberSerenity:
             :return: Command handlers as an enum in the format KEY_WORD -> CommandHandler(command, callback)
             """
             Command_Handler = namedtuple('CommandHandler', 'command callback')
-            command_keys = ["START", "MENU", "PROFILE", "CLEAN_TIME", "READINGS", "PRAYERS", "DAILY_REFLECTION",
-                            "JUST_FOR_TODAY", "LORDS_PRAYER", "SERENITY_PRAYER", "ST_JOSEPHS_PRAYER",
-                            "TENDER_AND_COMPASSIONATE_GOD", "THIRD_STEP_PRAYER", "SEVENTH_STEP_PRAYER",
-                            "ELEVENTH_STEP_PRAYER", "ENABLE_DAILY_NOTIFICATION", "DISABLE_DAILY_NOTIFICATION",
-                            "SET_UTC_OFFSET", "HELP"]
-            commands_name = ['start', 'menu', 'clean_time', 'daily_reflection', 'just_for_today', 'lords_prayer',
-                             'serenity_prayer', 'st_josephs_prayer', 'tender_and_compassionate_god',
-                             'third_step_prayer',
-                             'seventh_step_prayer', 'eleventh_step_prayer', 'profile', 'enable_daily_notification',
-                             'disable_daily_notification', 'set_utc_offset', 'help']
+            command_keys = ["START", "MENU", "PROFILE", "CLEAN_TIME", "DAILY_REFLECTION", "JUST_FOR_TODAY",
+                            "LORDS_PRAYER", "SERENITY_PRAYER", "ST_JOSEPHS_PRAYER", "TENDER_AND_COMPASSIONATE_GOD",
+                            "THIRD_STEP_PRAYER", "SEVENTH_STEP_PRAYER", "ELEVENTH_STEP_PRAYER",
+                            "ENABLE_DAILY_NOTIFICATION", "DISABLE_DAILY_NOTIFICATION", "SET_UTC_OFFSET", "HELP"]
+            commands_name = ['start', 'menu', 'profile', 'clean_time', 'daily_reflection', 'just_for_today',
+                             'lords_prayer', 'serenity_prayer', 'st_josephs_prayer', 'tender_and_compassionate_god',
+                             'third_step_prayer', 'seventh_step_prayer', 'eleventh_step_prayer',
+                             'enable_daily_notification', 'disable_daily_notification', 'set_utc_offset', 'help']
             command_callbacks = [start, start, self.profile, self.clean_time, self.readings, self.readings,
                                  self.prayers, self.prayers, self.prayers, self.prayers, self.prayers, self.prayers,
                                  self.prayers, self.enable_daily_notification, self.disable_daily_notification,
@@ -189,7 +179,7 @@ class SoberSerenity:
             Callback_Query_Handler = namedtuple('CallbackQueryHandler', 'callback pattern')
             callback_keys = ["MAIN_MENU", "PROFILE", "CLEAN_TIME", "READINGS_MENU", "PRAYERS_MENU", "READINGS",
                              "PRAYERS"]
-            callback_name = [main_menu, self.profile, self.clean_time, readings_menu, prayers_menu,
+            callback_name = [Menus.main_menu, self.profile, self.clean_time, Menus.readings_menu, Menus.prayers_menu,
                              self.readings, self.prayers]
             # Reading patterns
             readings_pattern = f'({MenuElements.DAILY_REFLECTION.value.data}' \
@@ -233,31 +223,117 @@ class SoberSerenity:
         return
 
 
+class Menus:
+    @staticmethod
+    def main_menu_keyboard() -> InlineKeyboardMarkup:
+        """Main menu keyboard"""
+        keyboard = [
+            [
+                InlineKeyboardButton("👤 Profile 👤", callback_data=str(MenuElements.PROFILE.value.data)),
+                InlineKeyboardButton("⏳ Clean Time ⏳", callback_data=str(MenuElements.CLEAN_TIME.value.data))
+            ],
+            [
+                InlineKeyboardButton("📚 Readings 📚", callback_data=str(MenuElements.READINGS.value.data)),
+                InlineKeyboardButton("🙏 Prayers 🙏", callback_data=str(MenuElements.PRAYERS.value.data)),
+            ],
+        ]
+        return InlineKeyboardMarkup(keyboard, resize_keyboard=True)
+
+    @staticmethod
+    def readings_menu_keyboard() -> InlineKeyboardMarkup:
+        """Readings menu keyboard"""
+        keyboard = [
+            [
+                InlineKeyboardButton("📖 Daily Reflections 📖",
+                                     callback_data=str(MenuElements.DAILY_REFLECTION.value.data)),
+                InlineKeyboardButton("📖 Just For Today 📖", callback_data=str(MenuElements.JUST_FOR_TODAY.value.data)),
+            ],
+            [InlineKeyboardButton("〽️ Main Menu 〽️", callback_data=str(MenuElements.MAIN_MENU.value.data))],
+        ]
+        return InlineKeyboardMarkup(keyboard, resize_keyboard=True)
+
+    @staticmethod
+    def prayers_menu_keyboard() -> InlineKeyboardMarkup:
+        """Prayers menu keyboard"""
+        keyboard = [
+            [
+                InlineKeyboardButton("📜 LORD's Prayer 📜", callback_data=str(MenuElements.LORDS_PRAYER.value.data)),
+                InlineKeyboardButton("📜 Serenity Prayer 📜",
+                                     callback_data=str(MenuElements.SERENITY_PRAYER.value.data)),
+            ],
+            [
+                InlineKeyboardButton("📜 St. Joseph's Prayer 📜",
+                                     callback_data=str(MenuElements.ST_JOSEPHS_PRAYER.value.data)),
+                InlineKeyboardButton("📜 Tender and Compassionate GOD 📜",
+                                     callback_data=str(MenuElements.TENDER_AND_COMPASSIONATE_GOD.value.data)),
+            ],
+            [
+                InlineKeyboardButton("📜 Third Step Prayer 📜",
+                                     callback_data=str(MenuElements.THIRD_STEP_PRAYER.value.data)),
+                InlineKeyboardButton("📜 Seventh Step Prayer 📜",
+                                     callback_data=str(MenuElements.SEVENTH_STEP_PRAYER.value.data)),
+            ],
+            [
+                InlineKeyboardButton("📜 Eleventh Step Prayer 📜",
+                                     callback_data=str(MenuElements.ELEVENTH_STEP_PRAYER.value.data)),
+                InlineKeyboardButton("〽️ Main Menu 〽️", callback_data=str(MenuElements.MAIN_MENU.value.data)),
+            ],
+        ]
+        return InlineKeyboardMarkup(keyboard, resize_keyboard=True)
+
+    @staticmethod
+    def main_menu_message() -> str:
+        """Main menu message"""
+        return 'Hi, I am the Sober Serenity Bot. ⚖️🕊⚖️🕊⚖️🕊️ \n\n\nI am here to help and guide you through your ' \
+               'process of Sobriety, be it for yourself or if you are trying to help out someone you care about. ' \
+               'Here are few things I can be of help to you. Please chose :: '
+
+    @staticmethod
+    def readings_menu_message() -> str:
+        """Reading menu message"""
+        return 'Readings help to feel comforted during our journey of recovery and sobriety and to gain strength. ' \
+               'We learn that today is a gift with no guarantees. With this in mind, the insignificance of the past ' \
+               'and future, and the importance of our actions today, become real for us. This simplifies our lives.'
+
+    @staticmethod
+    def prayers_menu_message() -> str:
+        """Prayers menu message"""
+        return 'On the onset of our journey towards sobriety we made a decision to turn our lives over to the care ' \
+               'of a Higher Power. This surrender relieves the burden of the past and fear of the future, and the ' \
+               'gift of today is now in proper perspective. We accept and enjoy life as it is right now. When we ' \
+               'refuse to accept the reality of today we are denying our faith in our Higher Power, which can only ' \
+               'bring more suffering. Prayer gives you a connection to something greater than yourself, which does ' \
+               'wonders for your emotional well-being. It provides a greater sense of purpose, betters your mood, ' \
+               'and helps you cope with and overcome the difficulties life brings your way. Just as it’s important ' \
+               'to exercise your body to stay healthy and in shape, the same is true for your soul, you need to ' \
+               'practice spiritual exercises to keep your soul in shape.'
+
+    @staticmethod
+    def main_menu(update: Update, context: CallbackContext) -> None:
+        update_context_with_user_data(update, context)
+        query = update.callback_query
+        query.answer()
+        query.message.reply_text(Menus.main_menu_message(), reply_markup=Menus.main_menu_keyboard())
+
+    @staticmethod
+    def readings_menu(update: Update, context: CallbackContext):
+        update_context_with_user_data(update, context)
+        query = update.callback_query
+        query.message.reply_text(Menus.readings_menu_message(), reply_markup=Menus.readings_menu_keyboard())
+        query.answer()
+
+    @staticmethod
+    def prayers_menu(update: Update, context: CallbackContext) -> None:
+        update_context_with_user_data(update, context)
+        query = update.callback_query
+        query.answer()
+        query.message.reply_text(Menus.prayers_menu_message(), reply_markup=Menus.prayers_menu_keyboard())
+
+
 def start(update: Update, context: CallbackContext) -> None:
     """Sends a message with three inline buttons attached."""
     update_context_with_user_data(update, context)
-    update.message.reply_text(main_menu_message(), reply_markup=main_menu_keyboard())
-
-
-def main_menu(update: Update, context: CallbackContext) -> None:
-    update_context_with_user_data(update, context)
-    query = update.callback_query
-    query.answer()
-    query.message.reply_text(main_menu_message(), reply_markup=main_menu_keyboard())
-
-
-def readings_menu(update: Update, context: CallbackContext):
-    update_context_with_user_data(update, context)
-    query = update.callback_query
-    query.message.reply_text(readings_menu_message(), reply_markup=readings_menu_keyboard())
-    query.answer()
-
-
-def prayers_menu(update: Update, context: CallbackContext) -> None:
-    update_context_with_user_data(update, context)
-    query = update.callback_query
-    query.answer()
-    query.message.reply_text(prayers_menu_message(), reply_markup=prayers_menu_keyboard())
+    update.message.reply_text(Menus.main_menu_message(), reply_markup=Menus.main_menu_keyboard())
 
 
 def get_user(update: Update, context: CallbackContext) -> dict:
@@ -294,7 +370,7 @@ def notification_callback(context: CallbackContext) -> None:
     if user['CleanDateTime']:
         quote = utils.get_random_motivational_str()
         clean_date_time = utils.convert_str_to_datetime(str(user['CleanDateTime']))
-        msg = utils.get_clean_time(clean_date_time)
+        msg = utils.get_clean_time(clean_date_time, user['UserID'])
         context.bot.send_message(chat_id=user['UserID'], text=f'{quote}\n\n{msg}')
 
 
@@ -318,90 +394,6 @@ def update_context_with_user_data(update: Update, context: CallbackContext) -> N
     user = utils.create_user(chat)
     key = str(uuid4())
     context.user_data[key] = user
-
-
-def main_menu_keyboard() -> InlineKeyboardMarkup:
-    """Main menu keyboard"""
-    keyboard = [
-        [
-            InlineKeyboardButton("👤 Profile 👤", callback_data=str(MenuElements.PROFILE.value.data)),
-            InlineKeyboardButton("⏳ Clean Time ⏳", callback_data=str(MenuElements.CLEAN_TIME.value.data))
-        ],
-        [
-            InlineKeyboardButton("📚 Readings 📚", callback_data=str(MenuElements.READINGS.value.data)),
-            InlineKeyboardButton("🙏 Prayers 🙏", callback_data=str(MenuElements.PRAYERS.value.data)),
-        ],
-    ]
-    return InlineKeyboardMarkup(keyboard, resize_keyboard=True)
-
-
-def readings_menu_keyboard() -> InlineKeyboardMarkup:
-    """Readings menu keyboard"""
-    keyboard = [
-        [
-            InlineKeyboardButton("📖 Daily Reflections 📖",
-                                 callback_data=str(MenuElements.DAILY_REFLECTION.value.data)),
-            InlineKeyboardButton("📖 Just For Today 📖", callback_data=str(MenuElements.JUST_FOR_TODAY.value.data)),
-        ],
-        [InlineKeyboardButton("〽️ Main Menu 〽️", callback_data=str(MenuElements.MAIN_MENU.value.data))],
-    ]
-    return InlineKeyboardMarkup(keyboard, resize_keyboard=True)
-
-
-def prayers_menu_keyboard() -> InlineKeyboardMarkup:
-    """Prayers menu keyboard"""
-    keyboard = [
-        [
-            InlineKeyboardButton("📜 LORD's Prayer 📜", callback_data=str(MenuElements.LORDS_PRAYER.value.data)),
-            InlineKeyboardButton("📜 Serenity Prayer 📜",
-                                 callback_data=str(MenuElements.SERENITY_PRAYER.value.data)),
-        ],
-        [
-            InlineKeyboardButton("📜 St. Joseph's Prayer 📜",
-                                 callback_data=str(MenuElements.ST_JOSEPHS_PRAYER.value.data)),
-            InlineKeyboardButton("📜 Tender and Compassionate GOD 📜",
-                                 callback_data=str(MenuElements.TENDER_AND_COMPASSIONATE_GOD.value.data)),
-        ],
-        [
-            InlineKeyboardButton("📜 Third Step Prayer 📜",
-                                 callback_data=str(MenuElements.THIRD_STEP_PRAYER.value.data)),
-            InlineKeyboardButton("📜 Seventh Step Prayer 📜",
-                                 callback_data=str(MenuElements.SEVENTH_STEP_PRAYER.value.data)),
-        ],
-        [
-            InlineKeyboardButton("📜 Eleventh Step Prayer 📜",
-                                 callback_data=str(MenuElements.ELEVENTH_STEP_PRAYER.value.data)),
-            InlineKeyboardButton("〽️ Main Menu 〽️", callback_data=str(MenuElements.MAIN_MENU.value.data)),
-        ],
-    ]
-    return InlineKeyboardMarkup(keyboard, resize_keyboard=True)
-
-
-def main_menu_message() -> str:
-    """Main menu message"""
-    return 'Hi, I am the Sober Serenity Bot. ⚖️🕊⚖️🕊⚖️🕊️ \n\n\nI am here to help and guide you through your ' \
-           'process of Sobriety, be it for yourself or if you are trying to help out someone you care about. ' \
-           'Here are few things I can be of help to you. Please chose :: '
-
-
-def readings_menu_message() -> str:
-    """Reading menu message"""
-    return 'Readings help to feel comforted during our journey of recovery and sobriety and to gain strength. ' \
-           'We learn that today is a gift with no guarantees. With this in mind, the insignificance of the past ' \
-           'and future, and the importance of our actions today, become real for us. This simplifies our lives.'
-
-
-def prayers_menu_message() -> str:
-    """Prayers menu message"""
-    return 'On the onset of our journey towards sobriety we made a decision to turn our lives over to the care ' \
-           'of a Higher Power. This surrender relieves the burden of the past and fear of the future, and the ' \
-           'gift of today is now in proper perspective. We accept and enjoy life as it is right now. When we ' \
-           'refuse to accept the reality of today we are denying our faith in our Higher Power, which can only ' \
-           'bring more suffering. Prayer gives you a connection to something greater than yourself, which does ' \
-           'wonders for your emotional well-being. It provides a greater sense of purpose, betters your mood, ' \
-           'and helps you cope with and overcome the difficulties life brings your way. Just as it’s important ' \
-           'to exercise your body to stay healthy and in shape, the same is true for your soul, you need to ' \
-           'practice spiritual exercises to keep your soul in shape.'
 
 
 if __name__ == '__main__':

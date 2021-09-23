@@ -159,6 +159,15 @@ def convert_utc_time_to_local_time(local_time: datetime.datetime, offset: relati
     return local_time + offset
 
 
+def get_user_local_time(user_id: int) -> datetime.datetime:
+    user = get_user(user_id)
+    if user:
+        offset = get_time_offset(user_id)
+        return convert_utc_time_to_local_time(datetime.datetime.utcnow(), offset)
+    else:
+        return datetime.datetime.utcnow()
+
+
 def convert_str_to_datetime(str_date: str) -> Union[datetime.datetime, None]:
     """
     Convert string date in the format YYYY-MM-DD to datetime.date object
@@ -183,11 +192,12 @@ def convert_str_to_datetime(str_date: str) -> Union[datetime.datetime, None]:
     return datetime.datetime(yr, mo, dy, hr, mn, sc)
 
 
-def get_clean_time(clean_date_time: datetime.datetime) -> str:
+def get_clean_time(clean_date_time: datetime.datetime, user_id: int) -> str:
     """
     Get clean time based on user specified clean date
 
     :param clean_date_time: datetime.datetime object specifying the clean date
+    :param user_id: User ID
     :return: Clean time string
     """
 
@@ -216,9 +226,10 @@ def get_clean_time(clean_date_time: datetime.datetime) -> str:
         """
         return '' if x == 0 else f' {x} {frame} ' if x == 1 else f' {x} {frame}s '
 
-    date_time_delta = relativedelta(datetime.datetime.today(), clean_date_time)
+    local_dt = get_user_local_time(user_id)
+    date_time_delta = relativedelta(local_dt, clean_date_time)
     clean_time_str = build_clean_time_str(date_time_delta)
-    days_since = (datetime.datetime.today() - clean_date_time).days
+    days_since = (local_dt - clean_date_time).days
     return f'Yaay!!! 👏👏👏, you have {clean_time_str} or {days_since} days of clean time.'
 
 
