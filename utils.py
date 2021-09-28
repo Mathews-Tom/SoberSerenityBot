@@ -8,7 +8,7 @@ from enum import Enum
 from typing import Union
 
 from dateutil.relativedelta import relativedelta
-from telegram import Chat
+from telegram import Chat, Update
 
 WORKING_DIR = os.getcwd()
 
@@ -296,6 +296,15 @@ def get_prayer(prayer_name: str) -> str:
     with open(f'{WORKING_DIR}/JSONs/Prayers.json', 'r') as fhd:
         data = json.load(fhd)[prayer_name]
     return format_prayer(data)
+
+
+def get_reading_prayer_name(update: Update) -> str:
+    """Get Reading or Prayer name"""
+    if hasattr(update.message, 'text'):
+        return MenuElements[update.message.text[1:].upper()].value.name
+    else:
+        ch = update.callback_query.data
+        return get_menu_element_from_chr(ch)
 
 
 def get_random_motivational_str() -> str:
