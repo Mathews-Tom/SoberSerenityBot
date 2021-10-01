@@ -19,6 +19,7 @@ Hi, I am the Sober Serenity Bot. I am here to help and guide you through your pr
    7. Eleventh Step Prayer  
 4. Persistent user profile  
 5. Daily clean time notification  
+6. Data stored in database using encryption
   
   
 ## Commands  
@@ -43,8 +44,8 @@ Following commands are implemented.
 > Use forward slash to run commands. e.g. /start , /menu  
   
 ## To-Do  
-1. Set clean date and time  
-2. Move user data from JSON to database with encryption  
+1. <s>Move user data from JSON to database with encryption</s>
+2. Set clean date and time   
 3. Expand daily notification settings  
 4. Community integration  
 5. Meeting finder  
@@ -53,4 +54,4 @@ Following commands are implemented.
 ### Author's Note  
 Created this in hopes to be of service for all who might need help in their journey of sobriety.   
   
-This is the first of a project of mine from scratch and am sure there is a lot that can be made much better. Critical suggestions and feedbacks are always welcome. Feel free to use the bot on telegram as well as provide suggestions for any changes or ideas for the project.
+This is the first of a project of mine for telegram bot and am sure there is a lot that can be made much better. Critical suggestions and feedbacks are always welcome. Feel free to use the bot on telegram as well as provide suggestions for any changes or ideas for the project.
