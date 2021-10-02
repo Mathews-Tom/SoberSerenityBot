@@ -95,20 +95,25 @@ class SoberSerenity:
             msg = Strings.ENABLE_NOTIFICATION_NOTIFICATION_ALREADY_SET.format(user["FirstName"],
                                                                               notification_time.time())
         else:
+            msg = self.enable_daily_notification_set(update, context, user)
+        send_message(self.Bot_UCM(update, context, msg), reply_markup=bot_helper.main_menu_keyboard())
+
+    @staticmethod
+    def enable_daily_notification_set(update: Update, context: CallbackContext, user: dict) -> str:
+        inp = update.message.text.split()
+        msg = Strings.ENABLE_NOTIFICATION_FAILURE.format(user["FirstName"])
+        if len(inp) == 3:
             inp = update.message.text.split()
-            if len(inp) == 3:
-                inp = update.message.text.split()
-                inp = f'{inp[1]} {inp[2]}'
-                time_local = utils.convert_str_to_datetime(inp)
+            inp = f'{inp[1]} {inp[2]}'
+            time_local = utils.convert_str_to_datetime(inp)
+            if time_local:
                 offset = database.get_time_offset(user['UserID'])
                 time_utc = utils.convert_local_time_to_utc_time(time_local, offset)
                 user = get_user(update, context)
                 context.job_queue.run_daily(notification_callback, days=tuple(range(7)), time=time_utc.time(),
                                             context=user['UserID'], name=str(user['UserID']))
                 msg = Strings.ENABLE_NOTIFICATION_SUCCESS.format(user["FirstName"], time_local.time())
-            else:
-                msg = Strings.ENABLE_NOTIFICATION_FAILURE.format(user["FirstName"])
-        send_message(self.Bot_UCM(update, context, msg), reply_markup=bot_helper.main_menu_keyboard())
+        return msg
 
     def disable_daily_notification(self, update: Update, context: CallbackContext) -> None:
         """Disable daily notifications for clean time."""
