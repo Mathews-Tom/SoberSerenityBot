@@ -2,9 +2,8 @@
 import datetime
 import os
 import random
-from collections import namedtuple
 from enum import Enum
-from typing import Tuple, Union
+from typing import Tuple, Union, NamedTuple
 
 from dateutil.relativedelta import relativedelta
 from dotenv import load_dotenv
@@ -16,8 +15,6 @@ from strings import Strings
 
 load_dotenv()
 sober_serenity_token = os.environ.get('SOBER_SERENITY_TOKEN')
-Params = namedtuple("Params", ["name", "token"])
-DB_PARAMS = Params("SoberSerenity.db", sober_serenity_token)
 
 
 class Tables(Enum):
@@ -55,6 +52,19 @@ class Columns(Enum):
     UTC_OFFSET = "utc_offset"
 
 
+class Params(NamedTuple):
+    name: str
+    token: str
+
+
+DB_PARAMS = Params("SoberSerenity.db", sober_serenity_token)
+
+
+class DBKeyValue(NamedTuple):
+    key: Columns
+    value: Union[str, int]
+
+
 def initialize_db(db_params: Params) -> Tuple:
     """Initialize database."""
     connection = sqlite3.connect(db_params.name)
@@ -73,33 +83,29 @@ def query_db(query) -> Union[list, None]:
     return result if bool(result) else None
 
 
-def get_record(table_name: Tables, primary_key: Columns, primary_value: Union[int, str]) -> list:
+def get_record(table_name: Tables, record: DBKeyValue) -> list:
     """Get record based on a column key and value.
 
     :param table_name: Table name
-    :param primary_key: Column name
-    :param primary_value: Column value
+    :param record: DBKeyValue of primary key
     :return: Return records as list of tuples or empty list if no record is found
     """
-    q = get_quotes(primary_value)
-    query = f"SELECT * FROM {table_name.value} WHERE {primary_key.value} = {q}{primary_value}{q}"
+    q = get_quotes(record.value)
+    query = f"SELECT * FROM {table_name.value} WHERE {record.key.value} = {q}{record.value}{q}"
     return query_db(query)
 
 
-def update_record(table_name: Tables, anchor_key: Columns, anchor_value: Union[int, str], update_key: Columns,
-                  update_value: Union[int, str]) -> None:
+def update_record(table_name: Tables, anchor: DBKeyValue, update: DBKeyValue) -> None:
     """Update record.
 
     :param table_name: Table name
-    :param anchor_key: Anchor column name
-    :param anchor_value: Anchor column value
-    :param update_key: Update column name
-    :param update_value: Update column value
+    :param anchor: DBKeyValue of anchor
+    :param update: DBKeyValue of update
     """
-    q1 = get_quotes(update_value)
-    q2 = get_quotes(anchor_value)
-    query = f"UPDATE {table_name.value} SET {update_key.value} = {q1}{update_value}{q1} " \
-            f"WHERE {anchor_key.value} = {q2}{anchor_value}{q2}"
+    q1 = get_quotes(update.value)
+    q2 = get_quotes(anchor.value)
+    query = f"UPDATE {table_name.value} SET {update.key.value} = {q1}{update.value}{q1} " \
+            f"WHERE {anchor.key.value} = {q2}{anchor.value}{q2}"
     return query_db(query)
 
 
@@ -118,15 +124,14 @@ def insert_record(table_name: Tables, values: Tuple) -> None:
     return query_db(query)
 
 
-def delete_record(table_name: Tables, key: Columns, value: Union[int, str]) -> None:
+def delete_record(table_name: Tables, record: DBKeyValue) -> None:
     """Delete record.
 
     :param table_name: Table name
-    :param key: Primary key column name
-    :param value: Primary key column value
+    :param record: DBKeyValue of primary key
     """
-    q = get_quotes(value)
-    query = f"DELETE FROM {table_name.value} WHERE {key.value} = {q}{value}{q}"
+    q = get_quotes(record.value)
+    query = f"DELETE FROM {table_name.value} WHERE {record.key.value} = {q}{record.value}{q}"
     return query_db(query)
 
 
@@ -148,7 +153,7 @@ def check_user_exists(user_id: int) -> bool:
     :param user_id: User ID
     :return: boolean
     """
-    result = get_record(Tables.USERS, Columns.USER_ID, user_id)
+    result = get_record(Tables.USERS, DBKeyValue(Columns.USER_ID, user_id))
     return bool(result)
 
 
@@ -159,7 +164,7 @@ def get_user(user_id: int) -> dict:
     :return: User profile
     """
     if check_user_exists(user_id):
-        result = get_record(Tables.USERS, Columns.USER_ID, user_id)
+        result = get_record(Tables.USERS, DBKeyValue(Columns.USER_ID, user_id))
         user = utils.convert_tuple_to_user_dict(result[0])
     else:
         user = None
@@ -197,7 +202,7 @@ def get_time_offset(user_id: int) -> relativedelta:
     :param user_id: User chat
     :return:
     """
-    result = get_record(Tables.USERS, Columns.USER_ID, user_id)
+    result = get_record(Tables.USERS, DBKeyValue(Columns.USER_ID, user_id))
     offset_str = utils.convert_tuple_to_user_dict(result[0])['UTCOffset']
     if offset_str:
         hr = int(offset_str[1:].split(':')[0])
@@ -217,7 +222,8 @@ def update_user_utc_time_offset(user_id: int, utc_offset: str) -> bool:
     """
     if check_user_exists(user_id):
         if utils.check_offset_format_is_correct(utc_offset):
-            update_record(Tables.USERS, Columns.USER_ID, user_id, Columns.UTC_OFFSET, utc_offset)
+            update_record(Tables.USERS, DBKeyValue(Columns.USER_ID, user_id),
+                          DBKeyValue(Columns.UTC_OFFSET, utc_offset))
             return True
     return False
 
@@ -256,7 +262,7 @@ def get_reading(book_name: str, date: datetime.datetime = datetime.datetime.toda
     """
     date = datetime.datetime(2020, date.month, date.day)
     book = Tables.DAILY_REFLECTION if book_name == "DailyReflection" else Tables.JUST_FOR_TODAY
-    reading = get_record(book, Columns.DATE, str(date.date()))
+    reading = get_record(book, DBKeyValue(Columns.DATE, str(date.date())))
     return utils.format_reading(book_name, utils.convert_tuple_to_reading_dict(reading[0]))
 
 
@@ -266,12 +272,12 @@ def get_prayer(prayer_name: str) -> str:
     :param prayer_name: Name of the Prayer
     :return Prayer
     """
-    prayer = get_record(Tables.PRAYERS, Columns.TITLE, prayer_name)
+    prayer = get_record(Tables.PRAYERS, DBKeyValue(Columns.TITLE, prayer_name))
     return utils.format_prayer(utils.convert_tuple_to_prayer_dict(prayer[0]))
 
 
 def get_random_motivational_str() -> str:
     """Get a random quote from the list of quotes."""
     rand_int = random.randrange(get_count(Tables.MOTIVATIONAL_QUOTES, Columns.SL_NO))
-    quote = get_record(Tables.MOTIVATIONAL_QUOTES, Columns.SL_NO, rand_int)
+    quote = get_record(Tables.MOTIVATIONAL_QUOTES, DBKeyValue(Columns.SL_NO, rand_int))
     return quote[0][1]

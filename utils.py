@@ -3,7 +3,7 @@ import datetime
 import os
 from collections import namedtuple
 from enum import Enum
-from typing import Union
+from typing import Union, Tuple
 
 from dateutil.relativedelta import relativedelta
 from telegram import Update
@@ -72,11 +72,7 @@ def convert_str_to_datetime(str_date: str) -> Union[datetime.datetime, None]:
     :param str_date: String date in the format YYYY-MM-DD
     :return: datetime.date object
     """
-    if ' ' not in str_date:
-        dt = str_date
-        sc = '00:00:00'
-    else:
-        dt, sc = str_date.split()
+    dt, sc = split_str_date_dt_sc(str_date)
     if len(dt.split('-')) != 3 or len(sc.split(':')) != 3:
         return None
     yr, mo, dy = dt.split('-')
@@ -85,11 +81,23 @@ def convert_str_to_datetime(str_date: str) -> Union[datetime.datetime, None]:
     no_char_accepted = 2
     if len(yr) != 4 or any(len(elem) > no_char_accepted for elem in itr):
         return None
-    try:
-        yr, mo, dy, hr, mn, sc = [int(x) for x in [yr, mo, dy, hr, mn, sc]]
-    except ValueError:
-        return None
-    return datetime.datetime(yr, mo, dy, hr, mn, sc)
+    dt_tuple = [int(x) for x in [yr, mo, dy, hr, mn, sc] if x.isdigit()]
+    yr, mo, dy, hr, mn, sc = dt_tuple
+    return datetime.datetime(yr, mo, dy, hr, mn, sc) if len(dt_tuple) == 6 else None
+
+
+def split_str_date_dt_sc(str_date: str) -> Tuple:
+    """Split string date to date and time.
+
+    :param str_date: String date in the format YYYY-MM-DD
+    :return: Tuple with date and time
+    """
+    if ' ' not in str_date:
+        dt = str_date
+        sc = '00:00:00'
+    else:
+        dt, sc = str_date.split()
+    return dt, sc
 
 
 def build_clean_time_str(dt_delta: relativedelta) -> str:
@@ -161,7 +169,7 @@ def get_reading_prayer_name(update: Update) -> str:
         return get_menu_element_from_chr(ch)
 
 
-def convert_tuple_to_user_dict(tuple_data: tuple) -> dict:
+def convert_tuple_to_user_dict(tuple_data: Tuple) -> dict:
     """Convert tuple record from DB to user dictionary.
 
     :param tuple_data: User data from DB
@@ -186,7 +194,7 @@ def convert_tuple_to_user_dict(tuple_data: tuple) -> dict:
     return user
 
 
-def convert_tuple_to_reading_dict(tuple_data: tuple) -> dict:
+def convert_tuple_to_reading_dict(tuple_data: Tuple) -> dict:
     """Convert tuple record from DB to reading dictionary.
     
     :param tuple_data: Reading data from DB
@@ -220,7 +228,7 @@ def convert_tuple_to_reading_dict(tuple_data: tuple) -> dict:
     return reading
 
 
-def convert_tuple_to_prayer_dict(tuple_data: tuple) -> dict:
+def convert_tuple_to_prayer_dict(tuple_data: Tuple) -> dict:
     """Convert tuple record from DB to prayer dictionary.
 
     :param tuple_data: Prayer data from DB
