@@ -11,7 +11,6 @@ from pysqlcipher3 import dbapi2 as sqlite3
 from telegram import Chat
 
 import utils
-from strings import Strings
 
 load_dotenv()
 sober_serenity_token = os.environ.get('SOBER_SERENITY_TOKEN')

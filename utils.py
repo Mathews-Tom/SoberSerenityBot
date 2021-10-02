@@ -8,7 +8,6 @@ from typing import Union, Tuple
 from dateutil.relativedelta import relativedelta
 from telegram import Update
 
-import utils
 from strings import Strings
 
 WORKING_DIR = os.getcwd()
