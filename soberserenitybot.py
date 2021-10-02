@@ -21,30 +21,38 @@ from telegram.ext import (
 import bot_helper
 import database
 import utils
+from strings import Strings
 from utils import MenuElements
 
 
 class SoberSerenity:
     Bot_UCM = namedtuple('Bot_UCM', 'update context message')
 
-    def __init__(self, token):
+    def __init__(self, token) -> None:
         self.updater = Updater(token=token)
         self.dispatcher = self.updater.dispatcher
+
+    def profile(self, update: Update, context: CallbackContext) -> None:
+        """Get user profile."""
+        user = get_user(update, context)
+        user_job = get_daily_notification(context, user['UserID'])
+        msg = Strings.PROFILE.format(user["FirstName"], database.get_user_profile_str(user, user_job))
+        send_message(self.Bot_UCM(update, context, msg), reply_markup=bot_helper.main_menu_keyboard())
 
     def clean_time(self, update: Update, context: CallbackContext) -> None:
         """Reply with calculated clean time."""
         user = get_user(update, context)
         if user['CleanDateTime']:
             clean_date_time = utils.convert_str_to_datetime(user['CleanDateTime'])
+            clean_time_str = database.get_clean_time_str(clean_date_time, user['UserID'])
             msg = f'{database.get_random_motivational_str()}\n\n' \
-                  f'{database.get_clean_time(clean_date_time, user["UserID"])}'
+                  f'{Strings.CLEAN_TIME.format(clean_time_str[0], clean_time_str[1])}'
         else:
-            msg = f'{user["FirstName"]}, you haven\'t set your profile yet. Please set user profile with clean date' \
-                  f' to get clean time data.'
+            msg = Strings.CLEAN_TIME_CLEAN_DATE_NOT_SET.format(user["FirstName"])
         send_message(self.Bot_UCM(update, context, msg), reply_markup=bot_helper.main_menu_keyboard())
 
     def readings(self, update: Update, context: CallbackContext) -> None:
-        """Get reading for today [default] or a specific date [user input]."""
+        """Get reading for today."""
         update_context_with_user_data(update, context)
         if hasattr(update.message, 'text'):
             inp = update.message.text.split()
@@ -58,7 +66,7 @@ class SoberSerenity:
         send_message(self.Bot_UCM(update, context, msg), reply_markup=bot_helper.readings_menu_keyboard())
 
     def prayers(self, update: Update, context: CallbackContext) -> None:
-        """Get prayer"""
+        """Get prayer."""
         update_context_with_user_data(update, context)
         if hasattr(update.message, 'text'):
             prayer = MenuElements[update.message.text[1:].upper()]
@@ -68,32 +76,24 @@ class SoberSerenity:
         msg = database.get_prayer(prayer.value.name)
         send_message(self.Bot_UCM(update, context, msg), reply_markup=bot_helper.prayers_menu_keyboard())
 
-    def profile(self, update: Update, context: CallbackContext) -> None:
-        """Get user profile"""
-        user = get_user(update, context)
-        user_job = get_daily_notification(context, user['UserID'])
-        msg = f'{user["FirstName"]}, I know the following about you\n{database.get_user_profile(user, user_job)}'
-        send_message(self.Bot_UCM(update, context, msg), reply_markup=bot_helper.main_menu_keyboard())
-
     def set_utc_offset(self, update: Update, context: CallbackContext) -> None:
-        """Set UTC offset"""
+        """Set UTC offset."""
         user = get_user(update, context)
         inp = update.message.text.split()
-        msg = f'Sorry {user["FirstName"]}, Please include offset in the format "+/-HH:MM" after the command'
+        msg = Strings.UTC_OFFSET_FAILURE.format(user["FirstName"])
         if len(inp) == 2 and database.update_user_utc_time_offset(user['UserID'], inp[1]):
-            msg = f'User time offset set to: {inp[1]}'
+            msg = Strings.UTC_OFFSET_SUCCESS.format(inp[1])
         send_message(self.Bot_UCM(update, context, msg))
 
-    def enable_daily_notification(self, update: Update, context: CallbackContext):
-        """Enable daily notifications for clean time at user specified time"""
+    def enable_daily_notification(self, update: Update, context: CallbackContext) -> None:
+        """Enable daily notifications for clean time at user specified time."""
         user = get_user(update, context)
         user_job = get_daily_notification(context, user['UserID'])
         if user_job:
             notification_time = utils.convert_utc_time_to_local_time(user_job[0].job.next_run_time,
                                                                      database.get_time_offset(user['UserID']))
-            msg = f'{user["FirstName"]}, your daily notification is already enabled for user for: ' \
-                  f'{notification_time.time()}.\n<i>To update notification time, first disable and then enable ' \
-                  f'daily notification with updated time.</i>'
+            msg = Strings.ENABLE_NOTIFICATION_NOTIFICATION_ALREADY_SET.format(user["FirstName"],
+                                                                              notification_time.time())
         else:
             inp = update.message.text.split()
             if len(inp) == 3:
@@ -103,44 +103,41 @@ class SoberSerenity:
                 offset = database.get_time_offset(user['UserID'])
                 time_utc = utils.convert_local_time_to_utc_time(time_local, offset)
                 user = get_user(update, context)
-                context.job_queue.run_daily(notification_callback, days=tuple(range(7)), time=time_utc,
+                context.job_queue.run_daily(notification_callback, days=tuple(range(7)), time=time_utc.time(),
                                             context=user['UserID'], name=str(user['UserID']))
-                msg = f'Great {user["FirstName"]}, I have enabled daily notifications for: {time_local.time()}'
+                msg = Strings.ENABLE_NOTIFICATION_SUCCESS.format(user["FirstName"], time_local.time())
             else:
-                msg = f'{user["FirstName"]}, to enable daily notifications, please provide date time in format ' \
-                      f'"YYYY-MM-DD HH:MM:SS" with current date after the command'
+                msg = Strings.ENABLE_NOTIFICATION_FAILURE.format(user["FirstName"])
         send_message(self.Bot_UCM(update, context, msg), reply_markup=bot_helper.main_menu_keyboard())
 
-    def disable_daily_notification(self, update: Update, context: CallbackContext):
-        """Disable daily notifications for clean time"""
+    def disable_daily_notification(self, update: Update, context: CallbackContext) -> None:
+        """Disable daily notifications for clean time."""
         user = get_user(update, context)
         user_job = get_daily_notification(context, user['UserID'])
         if user_job:
             notification_time = utils.convert_utc_time_to_local_time(user_job[0].job.next_run_time,
                                                                      database.get_time_offset(user['UserID']))
             user_job[0].schedule_removal()
-            msg = f'{user["FirstName"]}, your daily notification for {notification_time.time()} has been disabled'
+            msg = Strings.DISABLE_NOTIFICATION_SUCCESS.format(user["FirstName"], notification_time.time())
         else:
-            msg = f'{user["FirstName"]}, you don\'t have daily notification enabled yet. Use ' \
-                  f'"/enable_daily_notification" to enable daily notifications'
+            msg = Strings.DISABLE_NOTIFICATION_NOTIFICATION_NOT_SET.format(user["FirstName"])
         send_message(self.Bot_UCM(update, context, msg), reply_markup=bot_helper.main_menu_keyboard())
 
     def help_command(self, update: Update, context: CallbackContext) -> None:
         """Displays info on how to use the bot."""
         # update.message.reply_text("Use /start or /menu to use this bot.")
-        msg = "Use /start or /menu to use this bot."
+        msg = Strings.HELP
         send_message(self.Bot_UCM(update, context, msg))
 
     def error_handler(self, update: Update, context: CallbackContext) -> None:
-        """Error handler"""
-        msg = "Sorry, something went wrong!!!😟😟😟"
+        """Error handler."""
+        msg = Strings.ERROR_MESSAGE
         send_message(self.Bot_UCM(update, context, msg))
         print(f'Update {update} caused error {context.error}')
 
-    def run(self):
-        def get_command_handlers():
-            """
-            Command Handlers
+    def run(self) -> None:
+        def get_command_handlers() -> Enum:
+            """Command Handlers.
 
             :return: Command handlers as an enum in the format KEY_WORD -> CommandHandler(command, callback)
             """
@@ -160,9 +157,8 @@ class SoberSerenity:
             return Enum('Commands', {k: Command_Handler(command=v1, callback=v2)
                                      for k, v1, v2 in zip(command_keys, commands_name, command_callbacks)})
 
-        def get_callback_query_handler():
-            """
-            Callback Query Handlers
+        def get_callback_query_handler() -> Enum:
+            """Callback Query Handlers.
 
             :return: Callback query handlers as an enum in the format
                      KEY_WORD -> CallbackQueryHandler(callback, pattern)
@@ -215,7 +211,7 @@ class SoberSerenity:
 
 
 def update_context_with_user_data(update: Update, context: CallbackContext) -> None:
-    """Update context.user_data with UserProfile data"""
+    """Update context.user_data with UserProfile data."""
     # Update needed only when context.user_data is empty
     if context.user_data:
         return
@@ -229,7 +225,7 @@ def update_context_with_user_data(update: Update, context: CallbackContext) -> N
 
 
 def get_user(update: Update, context: CallbackContext) -> dict:
-    """Get user from user_data in context"""
+    """Get user from user_data in context."""
     update_context_with_user_data(update, context)
     key = list(context.user_data.keys())[0] if context.user_data else 'KeyNotFound'
     return context.user_data.get(key, {})
@@ -242,6 +238,7 @@ def start(update: Update, context: CallbackContext) -> None:
 
 
 def menu(update: Update, context: CallbackContext, message, keyboard) -> None:
+    """General menu control."""
     update_context_with_user_data(update, context)
     query = update.callback_query
     query.answer()
@@ -249,18 +246,22 @@ def menu(update: Update, context: CallbackContext, message, keyboard) -> None:
 
 
 def main_menu(update: Update, context: CallbackContext) -> None:
+    """Main menu."""
     menu(update, context, bot_helper.main_menu_message(), bot_helper.main_menu_keyboard())
 
 
-def readings_menu(update: Update, context: CallbackContext):
+def readings_menu(update: Update, context: CallbackContext) -> None:
+    """Readings menu."""
     menu(update, context, bot_helper.readings_menu_message(), bot_helper.readings_menu_keyboard())
 
 
 def prayers_menu(update: Update, context: CallbackContext) -> None:
+    """Prayers menu."""
     menu(update, context, bot_helper.prayers_menu_message(), bot_helper.prayers_menu_keyboard())
 
 
 def send_message(bot_ucm: SoberSerenity.Bot_UCM, reply_markup: ReplyMarkup = None) -> None:
+    """Send message."""
     answer_callback_query(bot_ucm.update)
     user = get_user(bot_ucm.update, bot_ucm.context)
     bot_ucm.context.bot.sendMessage(chat_id=user['UserID'],
@@ -270,29 +271,32 @@ def send_message(bot_ucm: SoberSerenity.Bot_UCM, reply_markup: ReplyMarkup = Non
 
 
 def notification_callback(context: CallbackContext) -> None:
-    """Notification callback"""
+    """Notification callback."""
     user_chat_id = int(str(context.job.context))
     user = database.get_user(user_chat_id)
     if user['CleanDateTime']:
         quote = database.get_random_motivational_str()
         clean_date_time = utils.convert_str_to_datetime(str(user['CleanDateTime']))
-        msg = database.get_clean_time(clean_date_time, user['UserID'])
+        clean_time_str = database.get_clean_time_str(clean_date_time, user['UserID'])
+        msg = Strings.CLEAN_TIME.format(clean_time_str[0], clean_time_str[1])
         context.bot.send_message(chat_id=user['UserID'], text=f'{quote}\n\n{msg}')
 
 
 def get_daily_notification(context: CallbackContext, user_id) -> tuple:
-    """Get enabled daily notification jobs for user"""
+    """Get enabled daily notification jobs for user."""
     user_job = context.job_queue.get_jobs_by_name(str(user_id))
     return user_job
 
 
 def answer_callback_query(update: Update) -> None:
+    """Answer Callback Query."""
     if hasattr(update.callback_query, "answer"):
         update.callback_query.answer()
 
 
 def unknown_command(update: Update, context: CallbackContext) -> None:
-    msg = "Sorry, I didn't understand that command. Please try \"\\start\" \"\\menu\" to interact with the bot"
+    """Unknown command handler."""
+    msg = Strings.UNKNOWN_COMMAND
     context.bot.sendMessage(chat_id=update.message.chat_id, text=msg)
 
 

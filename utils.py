@@ -11,9 +11,8 @@ from telegram import Update
 WORKING_DIR = os.getcwd()
 
 
-def create_menu_elements():
-    """
-    Create Menu Elements
+def create_menu_elements() -> Enum:
+    """Create Menu Elements.
 
     :return: Menu elements as an enum in the format KEY_WORD -> Vales(char, KeyWord)
     """
@@ -34,7 +33,7 @@ MenuElements = create_menu_elements()
 
 
 def get_menu_element_from_chr(ch) -> Union[MenuElements, None]:
-    """Get menu element from char data"""
+    """Get menu element from char data."""
     for me in MenuElements:
         if ch == me.value[0]:
             return me
@@ -42,22 +41,33 @@ def get_menu_element_from_chr(ch) -> Union[MenuElements, None]:
 
 
 def check_offset_format_is_correct(offset: str):
-    return len(offset.split(':')[0]) == 3 and len(offset.split(':')[1]) == 2
+    """Check if provided UTC offset is in correct time."""
+    if len(offset.split(':')):
+        return False
+    offset_split_1 = offset.split(':')[0]
+    offset_split_2 = offset.split(':')[1]
+    if len(offset_split_1) == 3 and len(offset_split_2) == 2:
+        try:
+            int(offset_split_1[1:])
+            int(offset_split_2)
+            return True
+        except ValueError:
+            return False
+    return False
 
 
-def convert_local_time_to_utc_time(local_time: datetime.datetime, offset: relativedelta):
-    """Convert local time to UTC time based on offset"""
+def convert_local_time_to_utc_time(local_time: datetime.datetime, offset: relativedelta) -> datetime.datetime:
+    """Convert local time to UTC time based on offset."""
     return local_time - offset
 
 
-def convert_utc_time_to_local_time(local_time: datetime.datetime, offset: relativedelta):
-    """Convert UTC time to local time based on offset"""
+def convert_utc_time_to_local_time(local_time: datetime.datetime, offset: relativedelta) -> datetime.datetime:
+    """Convert UTC time to local time based on offset."""
     return local_time + offset
 
 
 def convert_str_to_datetime(str_date: str) -> Union[datetime.datetime, None]:
-    """
-    Convert string date in the format YYYY-MM-DD to datetime.date object
+    """Convert string date in the format YYYY-MM-DD to datetime.date object.
 
     :param str_date: String date in the format YYYY-MM-DD
     :return: datetime.date object
@@ -75,13 +85,15 @@ def convert_str_to_datetime(str_date: str) -> Union[datetime.datetime, None]:
     no_char_accepted = 2
     if len(yr) != 4 or any(len(elem) > no_char_accepted for elem in itr):
         return None
-    yr, mo, dy, hr, mn, sc = [int(x) for x in [yr, mo, dy, hr, mn, sc]]
+    try:
+        yr, mo, dy, hr, mn, sc = [int(x) for x in [yr, mo, dy, hr, mn, sc]]
+    except ValueError:
+        return None
     return datetime.datetime(yr, mo, dy, hr, mn, sc)
 
 
 def build_clean_time_str(dt_delta: relativedelta) -> str:
-    """
-    Format and create clean time string
+    """Format and create clean time string.
 
     :param dt_delta Relative time delta between NOW and clean date.
     :return: Cleaned string representation of Clean Time
@@ -96,8 +108,7 @@ def build_clean_time_str(dt_delta: relativedelta) -> str:
 
 
 def format_string(x: int, frame: str) -> str:
-    """
-    Helper function to format individual time frames
+    """Helper function to format individual time frames.
 
     :param x: Integer
     :param frame: Time frame
@@ -107,8 +118,7 @@ def format_string(x: int, frame: str) -> str:
 
 
 def format_reading(book_name: str, reading_dict: dict) -> str:
-    """
-    Format the reading
+    """Format the reading.
 
     :param book_name: Name of the book (Alcoholic Anonymous or Narcotics Anonymous)
     :param reading_dict: Reading
@@ -134,8 +144,7 @@ def format_reading(book_name: str, reading_dict: dict) -> str:
 
 
 def format_prayer(prayer: dict) -> str:
-    """
-    Format the reading
+    """Format the reading.
 
     :param prayer Name of the prayer
     :return: Formatted prayer
@@ -144,9 +153,82 @@ def format_prayer(prayer: dict) -> str:
 
 
 def get_reading_prayer_name(update: Update) -> str:
-    """Get Reading or Prayer name"""
+    """Get Reading or Prayer name."""
     if hasattr(update.message, 'text'):
         return MenuElements[update.message.text[1:].upper()].value.name
     else:
         ch = update.callback_query.data
         return get_menu_element_from_chr(ch)
+
+
+def convert_tuple_to_user_dict(tuple_data: tuple) -> dict:
+    """Convert tuple record from DB to user dictionary.
+
+    :param tuple_data: User data from DB
+    :return: Dict in the format -> {UserID
+                                    UserName
+                                    FirstName
+                                    LastName
+                                    Addictions
+                                    CleanDateTime
+                                    UTCOffset}
+    """
+    addictions = tuple_data[4].split(", ")
+    if addictions[0] == "":
+        addictions = []
+    user = {"UserID": tuple_data[0],
+            "UserName": tuple_data[1],
+            "FirstName": tuple_data[2],
+            "LastName": tuple_data[3],
+            "Addictions": addictions,
+            "CleanDateTime": tuple_data[5],
+            "UTCOffset": tuple_data[6]}
+    return user
+
+
+def convert_tuple_to_reading_dict(tuple_data: tuple) -> dict:
+    """Convert tuple record from DB to reading dictionary.
+    
+    :param tuple_data: Reading data from DB
+    :return: Dict in the format -> {Date
+                                    Day
+                                    Month
+                                    Title
+                                    Snippet
+                                    Reference
+                                    Page
+                                    Content
+                                    JustForToday # Not for Daily Reflection and only for Just For Today
+                                    Copyright
+                                    Website}
+    """
+    reading = {"Date": tuple_data[0],
+               "Day": tuple_data[1],
+               "Month": tuple_data[2],
+               "Title": tuple_data[3],
+               "Snippet": tuple_data[4],
+               "Reference": tuple_data[5],
+               "Page": tuple_data[6],
+               "Content": tuple_data[7]}
+    if len(tuple_data) == 11:  # Just For Today
+        reading["JustForToday"] = tuple_data[8]
+        reading["Copyright"] = tuple_data[9]
+        reading["Website"] = tuple_data[10]
+    else:  # Daily Reflection
+        reading["Copyright"] = tuple_data[8]
+        reading["Website"] = tuple_data[9]
+    return reading
+
+
+def convert_tuple_to_prayer_dict(tuple_data: tuple) -> dict:
+    """Convert tuple record from DB to prayer dictionary.
+
+    :param tuple_data: Prayer data from DB
+    :return: Dict in thr format -> {Title
+                                    Name
+                                    Prayer}
+    """
+    prayer = {"Title": tuple_data[0],
+              "Name": tuple_data[1],
+              "Prayer": tuple_data[2]}
+    return prayer
