@@ -50,6 +50,7 @@ class Columns(Enum):
     ADDICTIONS = "addictions"
     CLEAN_DATE = "clean_date"
     UTC_OFFSET = "utc_offset"
+    DAILY_NOTIFICATION = "daily_notification"
 
 
 class Params(NamedTuple):
@@ -175,25 +176,9 @@ def create_user(chat: Chat) -> dict:
     """Create new user profile and store in USERS table in DB. Return user if user exists."""
     if check_user_exists(chat.id):
         return get_user(chat.id)
-    new_user = (chat.id, chat.username, chat.first_name, chat.last_name, "", "", "")
+    new_user = (chat.id, chat.username, chat.first_name, chat.last_name, "", "", "", "")
     insert_record(Tables.USERS, new_user)
     return utils.convert_tuple_to_user_dict(new_user)
-
-
-def get_user_profile_str(user: dict, user_job) -> str:
-    """Get user profile string."""
-    user_profile_str = Strings.PROFILE_FIRSTNAME_LASTNAME.format(user['FirstName'], user['LastName'])
-    if user['Addictions']:
-        user_profile_str += "\n" + Strings.PROFILE_ADDICTIONS.format(', '.join(user['Addictions']))
-    if user['CleanDateTime']:
-        user_profile_str += "\n" + Strings.PROFILE_CLEAN_DATE.format(user['CleanDateTime'])
-    if user['UTCOffset']:
-        user_profile_str += "\n" + Strings.PROFILE_UTC_OFFSET.format(user['UTCOffset'])
-    if user_job:
-        notification_time = utils.convert_utc_time_to_local_time(user_job[0].job.next_run_time,
-                                                                 get_time_offset(user['UserID']))
-        user_profile_str += "\n" + Strings.PROFILE_DAILY_NOTIFICATION.format(notification_time.time())
-    return user_profile_str
 
 
 def get_time_offset(user_id: int) -> relativedelta:
@@ -204,13 +189,21 @@ def get_time_offset(user_id: int) -> relativedelta:
     """
     result = get_record(Tables.USERS, DBKeyValue(Columns.USER_ID, user_id))
     offset_str = utils.convert_tuple_to_user_dict(result[0])['UTCOffset']
-    if offset_str:
-        hr = int(offset_str[1:].split(':')[0])
-        mn = int(offset_str[1:].split(':')[1])
-        offset = relativedelta(hours=hr, minutes=mn, seconds=0)
-    else:
-        offset = relativedelta(hours=0, minute=0, seconds=0)
-    return offset
+    return utils.convert_utc_offset_str_relativedelta(offset_str)
+
+
+def update_daily_notification(user_id: int, notification_time: str) -> bool:
+    """Update daily notification time.
+
+    :param user_id: User chat ID
+    :param notification_time: Notification time
+    :return: True if Daily notification was updated, otherwise False
+    """
+    if check_user_exists(user_id):
+        update_record(Tables.USERS, DBKeyValue(Columns.USER_ID, user_id),
+                      DBKeyValue(Columns.DAILY_NOTIFICATION, notification_time))
+        return True
+    return False
 
 
 def update_user_utc_time_offset(user_id: int, utc_offset: str) -> bool:

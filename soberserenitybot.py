@@ -35,8 +35,7 @@ class SoberSerenity:
     def profile(self, update: Update, context: CallbackContext) -> None:
         """Get user profile."""
         user = get_user(update, context)
-        user_job = get_daily_notification(context, user['UserID'])
-        msg = Strings.PROFILE.format(user["FirstName"], database.get_user_profile_str(user, user_job))
+        msg = Strings.PROFILE.format(user["FirstName"], utils.get_user_profile_str(user))
         send_message(self.Bot_UCM(update, context, msg), reply_markup=bot_helper.main_menu_keyboard())
 
     def clean_time(self, update: Update, context: CallbackContext) -> None:
@@ -91,7 +90,7 @@ class SoberSerenity:
         user_job = get_daily_notification(context, user['UserID'])
         if user_job:
             notification_time = utils.convert_utc_time_to_local_time(user_job[0].job.next_run_time,
-                                                                     database.get_time_offset(user['UserID']))
+                                                                     database.get_time_offset(user["UserID"]))
             msg = Strings.ENABLE_NOTIFICATION_NOTIFICATION_ALREADY_SET.format(user["FirstName"],
                                                                               notification_time.time())
         else:
@@ -112,6 +111,9 @@ class SoberSerenity:
                 user = get_user(update, context)
                 context.job_queue.run_daily(notification_callback, days=tuple(range(7)), time=time_utc.time(),
                                             context=user['UserID'], name=str(user['UserID']))
+                user["DailyNotification"] = str(time_local.time())
+                database.update_daily_notification(user["UserID"], user["DailyNotification"])
+                update_user(context, user)
                 msg = Strings.ENABLE_NOTIFICATION_SUCCESS.format(user["FirstName"], time_local.time())
         return msg
 
@@ -123,8 +125,14 @@ class SoberSerenity:
             notification_time = utils.convert_utc_time_to_local_time(user_job[0].job.next_run_time,
                                                                      database.get_time_offset(user['UserID']))
             user_job[0].schedule_removal()
+            user["DailyNotification"] = ""
+            database.update_daily_notification(user["UserID"], user["DailyNotification"])
+            update_user(context, user)
             msg = Strings.DISABLE_NOTIFICATION_SUCCESS.format(user["FirstName"], notification_time.time())
         else:
+            user["DailyNotification"] = ""
+            database.update_daily_notification(user["UserID"], user["DailyNotification"])
+            update_user(context, user)
             msg = Strings.DISABLE_NOTIFICATION_NOTIFICATION_NOT_SET.format(user["FirstName"])
         send_message(self.Bot_UCM(update, context, msg), reply_markup=bot_helper.main_menu_keyboard())
 
@@ -234,6 +242,11 @@ def get_user(update: Update, context: CallbackContext) -> dict:
     update_context_with_user_data(update, context)
     key = list(context.user_data.keys())[0] if context.user_data else 'KeyNotFound'
     return context.user_data.get(key, {})
+
+
+def update_user(context: CallbackContext, user: dict) -> None:
+    key = list(context.user_data.keys())[0] if context.user_data else 'KeyNotFound'
+    context.user_data[key] = user
 
 
 def start(update: Update, context: CallbackContext) -> None:

@@ -8,6 +8,9 @@ from typing import Union, Tuple
 from dateutil.relativedelta import relativedelta
 from telegram import Update
 
+import utils
+from strings import Strings
+
 WORKING_DIR = os.getcwd()
 
 
@@ -67,10 +70,10 @@ def convert_utc_time_to_local_time(local_time: datetime.datetime, offset: relati
 
 
 def convert_str_to_datetime(str_date: str) -> Union[datetime.datetime, None]:
-    """Convert string date in the format YYYY-MM-DD to datetime.date object.
+    """Convert string date in the format YYYY-MM-DD HH:MM:SS to datetime.datetime object.
 
-    :param str_date: String date in the format YYYY-MM-DD
-    :return: datetime.date object
+    :param str_date: String date in the format YYYY-MM-DD HH:MM:SS
+    :return: datetime.datetime object for success and None for failure
     """
     dt, sc = split_str_date_dt_sc(str_date)
     if len(dt.split('-')) != 3 or len(sc.split(':')) != 3:
@@ -82,8 +85,8 @@ def convert_str_to_datetime(str_date: str) -> Union[datetime.datetime, None]:
     if len(yr) != 4 or any(len(elem) > no_char_accepted for elem in itr):
         return None
     dt_tuple = [int(x) for x in [yr, mo, dy, hr, mn, sc] if x.isdigit()]
-    yr, mo, dy, hr, mn, sc = dt_tuple
-    return datetime.datetime(yr, mo, dy, hr, mn, sc) if len(dt_tuple) == 6 else None
+    return datetime.datetime(dt_tuple[0], dt_tuple[1], dt_tuple[2], dt_tuple[3], dt_tuple[4],
+                             dt_tuple[5]) if len(dt_tuple) == 6 else None
 
 
 def split_str_date_dt_sc(str_date: str) -> Tuple:
@@ -179,7 +182,8 @@ def convert_tuple_to_user_dict(tuple_data: Tuple) -> dict:
                                     LastName
                                     Addictions
                                     CleanDateTime
-                                    UTCOffset}
+                                    UTCOffset
+                                    DailyNotification}
     """
     addictions = tuple_data[4].split(", ")
     if addictions[0] == "":
@@ -190,7 +194,8 @@ def convert_tuple_to_user_dict(tuple_data: Tuple) -> dict:
             "LastName": tuple_data[3],
             "Addictions": addictions,
             "CleanDateTime": tuple_data[5],
-            "UTCOffset": tuple_data[6]}
+            "UTCOffset": tuple_data[6],
+            "DailyNotification": tuple_data[7]}
     return user
 
 
@@ -240,3 +245,27 @@ def convert_tuple_to_prayer_dict(tuple_data: Tuple) -> dict:
               "Name": tuple_data[1],
               "Prayer": tuple_data[2]}
     return prayer
+
+
+def convert_utc_offset_str_relativedelta(offset_str) -> relativedelta:
+    if offset_str:
+        hr = int(offset_str[1:].split(':')[0])
+        mn = int(offset_str[1:].split(':')[1])
+        offset = relativedelta(hours=hr, minutes=mn, seconds=0)
+    else:
+        offset = relativedelta(hours=0, minute=0, seconds=0)
+    return offset
+
+
+def get_user_profile_str(user: dict) -> str:
+    """Get user profile string."""
+    user_profile_str = Strings.PROFILE_FIRSTNAME_LASTNAME.format(user['FirstName'], user['LastName'])
+    if user['Addictions']:
+        user_profile_str += "\n" + Strings.PROFILE_ADDICTIONS.format(', '.join(user['Addictions']))
+    if user['CleanDateTime']:
+        user_profile_str += "\n" + Strings.PROFILE_CLEAN_DATE.format(user['CleanDateTime'])
+    if user['UTCOffset']:
+        user_profile_str += "\n" + Strings.PROFILE_UTC_OFFSET.format(user['UTCOffset'])
+    if user['DailyNotification']:
+        user_profile_str += "\n" + Strings.PROFILE_DAILY_NOTIFICATION.format(user['DailyNotification'])
+    return user_profile_str

@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-
 class Strings:
     MAIN_MENU = "Hi, I am the Sober Serenity Bot. ⚖️🕊⚖️🕊⚖️🕊️ \n\n\nI am here to help and guide you through your " \
                 "process of Sobriety, be it for yourself or if you are trying to help out someone you care about. " \
@@ -43,8 +42,8 @@ class Strings:
     UTC_OFFSET_SUCCESS = "User time offset set to: {}"
     UTC_OFFSET_FAILURE = "{}, use this format to set UTC offset:\n\n/set_utc_offset +/-HH:MM"
     ENABLE_NOTIFICATION_SUCCESS = "Great {}, I have enabled daily notifications for: {}"
-    ENABLE_NOTIFICATION_NOTIFICATION_ALREADY_SET = "{}, your daily notification is already enabled for: {}.\n<i>To " \
-                                                   "update notification time, first disable and then enable daily " \
+    ENABLE_NOTIFICATION_NOTIFICATION_ALREADY_SET = "{}, your daily notification is enabled for: {}.\n<i>To update " \
+                                                   "notification time, first disable and then enable daily " \
                                                    "notification with updated time.</i>"
     ENABLE_NOTIFICATION_FAILURE = "{}, use this format to enable daily notifications:\n\n/enable_daily_notification " \
                                   "YYYY-MM-DD HH:MM:SS"
