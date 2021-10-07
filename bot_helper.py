@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
-from telegram import InlineKeyboardMarkup, InlineKeyboardButton
+from uuid import uuid4
 
+from telegram import InlineKeyboardMarkup, InlineKeyboardButton, Update
+from telegram.ext import CallbackContext
+
+import database
 from strings import Strings
 from utils import MenuElements
 
@@ -76,3 +80,45 @@ def readings_menu_message() -> str:
 def prayers_menu_message() -> str:
     """Prayers menu message"""
     return Strings.PRAYERS_MENU
+
+
+def answer_callback_query(update: Update) -> Update:
+    """Answer Callback Query.
+    This is required for callback queries only. Command invocation wouldn't require this."""
+    if hasattr(update, "callback_query") and hasattr(update.callback_query, "answer"):
+        update.callback_query.answer()
+    return update
+
+
+def get_daily_notification(context: CallbackContext, user_id) -> tuple:
+    """Get enabled daily notification jobs for user."""
+    user_job = context.job_queue.get_jobs_by_name(str(user_id))
+    return user_job
+
+
+def update_context_with_user_data(update: Update, context: CallbackContext) -> tuple:
+    """Update context.user_data with UserProfile data."""
+    # Update needed only when context.user_data is empty
+    if context.user_data:
+        return update, context
+    if hasattr(update.callback_query, 'message'):
+        chat = update.callback_query.message.chat
+    else:
+        chat = update.message.chat
+    user = database.create_user(chat)
+    key = str(uuid4())
+    context.user_data[key] = user
+    return update, context
+
+
+def get_user(update: Update, context: CallbackContext) -> tuple:
+    """Get user from user_data in context."""
+    update, context = update_context_with_user_data(update, context)
+    key = list(context.user_data.keys())[0] if context.user_data else 'KeyNotFound'
+    return update, context, context.user_data.get(key, {})
+
+
+def update_user(context: CallbackContext, user: dict) -> CallbackContext:
+    key = list(context.user_data.keys())[0] if context.user_data else 'KeyNotFound'
+    context.user_data[key] = user
+    return context

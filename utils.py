@@ -142,13 +142,13 @@ def format_reading(book_name: str, reading_dict: dict) -> str:
     fmt += (
         f'{reading_dict["Month"]} {reading_dict["Day"]}: '
         f'<b><u>{reading_dict["Title"]}</u></b>\n\n'
-        f'<i>{reading_dict["Snippet"]}\n\n'
-        f'{reading_dict["Content"]}</i> \n\n'
+        f'<i>{reading_dict["Snippet"]}</i>\n\n'
+        f'{reading_dict["Content"]} \n\n'
     )
     if book_name == 'JustForToday':
         fmt += f"<i>Just for Today: {reading_dict['JustForToday']}</i>\n\n"
 
-    if not reading_dict['Reference']:
+    if reading_dict['Reference']:
         fmt += f"<i>\n\n{reading_dict['Reference']}  P.{reading_dict['Page']}</i>"
     return fmt
 
@@ -246,7 +246,7 @@ def convert_tuple_to_prayer_dict(tuple_data: Tuple) -> dict:
     return prayer
 
 
-def convert_utc_offset_str_relativedelta(offset_str) -> relativedelta:
+def convert_utc_offset_str_relative_delta(offset_str) -> relativedelta:
     if offset_str:
         hr = int(offset_str[1:].split(':')[0])
         mn = int(offset_str[1:].split(':')[1])
@@ -268,3 +268,9 @@ def get_user_profile_str(user: dict) -> str:
     if user['DailyNotification']:
         user_profile_str += "\n" + Strings.PROFILE_DAILY_NOTIFICATION.format(user['DailyNotification'])
     return user_profile_str
+
+
+def modify_str_int_value(value) -> Union[str, int]:
+    """SQL query needs quotes present for string values. Return value if value is integer else return value wrapped
+    in quotes."""
+    return value if isinstance(value, int) else f"'{value}'"

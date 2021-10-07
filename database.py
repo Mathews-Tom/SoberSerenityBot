@@ -17,7 +17,7 @@ sober_serenity_token = os.environ.get('SOBER_SERENITY_TOKEN')
 
 
 class Tables(Enum):
-    """Table names"""
+    """Database table names"""
     DAILY_REFLECTION = "DAILY_REFLECTION"
     JUST_FOR_TODAY = "JUST_FOR_TODAY"
     PRAYERS = "PRAYERS"
@@ -26,7 +26,7 @@ class Tables(Enum):
 
 
 class Columns(Enum):
-    """Column names"""
+    """Database column names"""
     DATE = "date"
     DAY = "day"
     MONTH = "month"
@@ -52,20 +52,29 @@ class Columns(Enum):
     DAILY_NOTIFICATION = "daily_notification"
 
 
-class Params(NamedTuple):
+class DatabaseParams(NamedTuple):
+    """Database parameters (NAME, TOKEN).
+
+    name: Database file name
+    token: Encryption token
+    """
     name: str
     token: str
 
 
-DB_PARAMS = Params("SoberSerenity.db", sober_serenity_token)
+DB_PARAMS = DatabaseParams("SoberSerenity.db", sober_serenity_token)
 
 
 class DBKeyValue(NamedTuple):
+    """Database key value pair tuple.
+    key: Columns type with column names
+    value: Union[str, int]
+    """
     key: Columns
     value: Union[str, int]
 
 
-def initialize_db(db_params: Params) -> Tuple:
+def initialize_db(db_params: DatabaseParams) -> Tuple:
     """Initialize database."""
     connection = sqlite3.connect(db_params.name)
     cursor = connection.cursor()
@@ -90,8 +99,8 @@ def get_record(table_name: Tables, record: DBKeyValue) -> list:
     :param record: DBKeyValue of primary key
     :return: Return records as list of tuples or empty list if no record is found
     """
-    q = get_quotes(record.value)
-    query = f"SELECT * FROM {table_name.value} WHERE {record.key.value} = {q}{record.value}{q}"
+    value = utils.modify_str_int_value(record.value)
+    query = f"SELECT * FROM {table_name.value} WHERE {record.key.value} = {value}"
     return query_db(query)
 
 
@@ -102,10 +111,10 @@ def update_record(table_name: Tables, anchor: DBKeyValue, update: DBKeyValue) ->
     :param anchor: DBKeyValue of anchor
     :param update: DBKeyValue of update
     """
-    q1 = get_quotes(update.value)
-    q2 = get_quotes(anchor.value)
-    query = f"UPDATE {table_name.value} SET {update.key.value} = {q1}{update.value}{q1} " \
-            f"WHERE {anchor.key.value} = {q2}{anchor.value}{q2}"
+    update_value = utils.modify_str_int_value(update.value)
+    anchor_value = utils.modify_str_int_value(anchor.value)
+    query = f"UPDATE {table_name.value} SET {update.key.value} = {update_value} " \
+            f"WHERE {anchor.key.value} = {anchor_value}"
     return query_db(query)
 
 
@@ -117,8 +126,8 @@ def insert_record(table_name: Tables, values: Tuple) -> None:
     """
     query = f"INSERT INTO {table_name.value} VALUES ("
     for value in values:
-        q = get_quotes(value)
-        query += f"{q}{value}{q}, "
+        value = utils.modify_str_int_value(value)
+        query += f"{value}, "
     query = query[:-2]
     query += ")"
     return query_db(query)
@@ -130,8 +139,8 @@ def delete_record(table_name: Tables, record: DBKeyValue) -> None:
     :param table_name: Table name
     :param record: DBKeyValue of primary key
     """
-    q = get_quotes(record.value)
-    query = f"DELETE FROM {table_name.value} WHERE {record.key.value} = {q}{record.value}{q}"
+    value = utils.modify_str_int_value(record.value)
+    query = f"DELETE FROM {table_name.value} WHERE {record.key.value} = {value}"
     return query_db(query)
 
 
@@ -140,11 +149,6 @@ def get_count(table_name: Tables, key: Columns) -> int:
     query = f"SELECT COUNT({key.value}) FROM {table_name.value}"
     result = query_db(query)
     return result[0][0] if bool(result) else 0
-
-
-def get_quotes(value) -> str:
-    """Get quotes to be added in SQL query if the instance is not of instance INT."""
-    return "" if isinstance(value, int) else "'"
 
 
 def check_user_exists(user_id: int) -> bool:
@@ -188,7 +192,7 @@ def get_time_offset(user_id: int) -> relativedelta:
     """
     result = get_record(Tables.USERS, DBKeyValue(Columns.USER_ID, user_id))
     offset_str = utils.convert_tuple_to_user_dict(result[0])['UTCOffset']
-    return utils.convert_utc_offset_str_relativedelta(offset_str)
+    return utils.convert_utc_offset_str_relative_delta(offset_str)
 
 
 def update_daily_notification(user_id: int, notification_time: str) -> bool:
