@@ -1,6 +1,7 @@
 JSONs
 venv
 .idea
+__pycache__
 .env
 .DS_Store
 SoberSerenity.db

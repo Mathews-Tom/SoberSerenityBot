@@ -1,37 +1,15 @@
 #!/usr/bin/env python3
 import datetime
 import os
-from collections import namedtuple
-from enum import Enum
 from typing import Union, Tuple
 
 from dateutil.relativedelta import relativedelta
 from telegram import Update
 
+from models import MenuElements
 from strings import Strings
 
 WORKING_DIR = os.getcwd()
-
-
-def create_menu_elements() -> Enum:
-    """Create Menu Elements.
-
-    :return: Menu elements as an enum in the format KEY_WORD -> Vales(char, KeyWord)
-    """
-    menu_keys = ["MAIN_MENU", "PROFILE", "CLEAN_TIME", "READINGS", "PRAYERS", "DAILY_REFLECTION", "JUST_FOR_TODAY",
-                 "LORDS_PRAYER", "SERENITY_PRAYER", "ST_JOSEPHS_PRAYER", "TENDER_AND_COMPASSIONATE_GOD",
-                 "THIRD_STEP_PRAYER", "SEVENTH_STEP_PRAYER", "ELEVENTH_STEP_PRAYER"]
-    menu_values_chr = [chr(ch) for ch in range(len(menu_keys))]
-    menu_values_str = ["MainMenu", "Profile", "CleanTime", "Readings", "Prayers", "DailyReflection", "JustForToday",
-                       "LordsPrayer", "SerenityPrayer", "StJosephsPrayer", "TenderAndCompassionateGod",
-                       "ThirdStepPrayer", "SeventhStepPrayer", "EleventhStepPrayer"]
-    values = namedtuple('Values', 'data name')
-    return Enum('MenuElements', {k: values(data=v1, name=v2)
-                                 for k, v1, v2 in zip(menu_keys, menu_values_chr, menu_values_str)})
-
-
-# Menu Elements
-MenuElements = create_menu_elements()
 
 
 def get_menu_element_from_chr(ch) -> Union[MenuElements, None]:

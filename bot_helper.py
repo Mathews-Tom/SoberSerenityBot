@@ -5,8 +5,8 @@ from telegram import InlineKeyboardMarkup, InlineKeyboardButton, Update
 from telegram.ext import CallbackContext
 
 import database
+from models import MenuElements
 from strings import Strings
-from utils import MenuElements
 
 
 def main_menu_keyboard() -> InlineKeyboardMarkup:

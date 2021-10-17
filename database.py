@@ -1,9 +1,7 @@
-#!/usr/bin/env python3
 import datetime
 import os
 import random
-from enum import Enum
-from typing import Tuple, Union, NamedTuple
+from typing import Tuple, Union
 
 from dateutil.relativedelta import relativedelta
 from dotenv import load_dotenv
@@ -11,67 +9,12 @@ from pysqlcipher3 import dbapi2 as sqlite3
 from telegram import Chat
 
 import utils
+from models import DatabaseParams, Tables, Columns, DBKeyValue
 
 load_dotenv()
 sober_serenity_token = os.environ.get('SOBER_SERENITY_TOKEN')
 
-
-class Tables(Enum):
-    """Database table names"""
-    DAILY_REFLECTION = "DAILY_REFLECTION"
-    JUST_FOR_TODAY = "JUST_FOR_TODAY"
-    PRAYERS = "PRAYERS"
-    MOTIVATIONAL_QUOTES = "MOTIVATIONAL_QUOTES"
-    USERS = "USERS"
-
-
-class Columns(Enum):
-    """Database column names"""
-    DATE = "date"
-    DAY = "day"
-    MONTH = "month"
-    TITLE = "title"
-    SNIPPET = "snippet"
-    REFERENCE = "reference"
-    PAGE = "page"
-    CONTENT = "content"
-    JUST_FOR_TODAY = "just_for_today"
-    COPYRIGHT = "copyright"
-    WEBSITE = "website"
-    NAME = "name"
-    PRAYER = "prayer"
-    SL_NO = "sl_no"
-    QUOTE = "quote"
-    USER_ID = "user_id"
-    USER_NAME = "user_name"
-    FIRST_NAME = "first_name"
-    LAST_NAME = "last_name"
-    ADDICTIONS = "addictions"
-    CLEAN_DATE = "clean_date"
-    UTC_OFFSET = "utc_offset"
-    DAILY_NOTIFICATION = "daily_notification"
-
-
-class DatabaseParams(NamedTuple):
-    """Database parameters (NAME, TOKEN).
-
-    name: Database file name
-    token: Encryption token
-    """
-    name: str
-    token: str
-
-
 DB_PARAMS = DatabaseParams("SoberSerenity.db", sober_serenity_token)
-
-
-class DBKeyValue(NamedTuple):
-    """Database key value pair tuple.
-    key: Columns type with column names
-    value: Union[str, int]
-    """
-    key: Columns
-    value: Union[str, int]
 
 
 def initialize_db(db_params: DatabaseParams) -> Tuple:
@@ -101,6 +44,18 @@ def get_record(table_name: Tables, record: DBKeyValue) -> list:
     """
     value = utils.modify_str_int_value(record.value)
     query = f"SELECT * FROM {table_name.value} WHERE {record.key.value} = {value}"
+    return query_db(query)
+
+
+def get_record_not_value(table_name: Tables, record: DBKeyValue) -> list:
+    """Get record based on a column key and value.
+
+    :param table_name: Table name
+    :param record: DBKeyValue of primary key
+    :return: Return records as list of tuples or empty list if no record is found
+    """
+    value = utils.modify_str_int_value(record.value)
+    query = f"SELECT * FROM {table_name.value} WHERE {record.key.value} <> {value}"
     return query_db(query)
 
 
@@ -173,6 +128,16 @@ def get_user(user_id: int) -> dict:
     else:
         user = None
     return user
+
+
+def get_users_with_set_notification() -> Union[list, None]:
+    results = get_record_not_value(Tables.USERS, DBKeyValue(Columns.DAILY_NOTIFICATION, ""))
+    if results:
+        users = []
+        for result in results:
+            users.append(utils.convert_tuple_to_user_dict(result))
+        return users
+    return None
 
 
 def create_user(chat: Chat) -> dict:
