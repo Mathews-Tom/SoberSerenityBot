@@ -29,19 +29,19 @@ class SoberSerenity:
             :return: Command handlers as an enum in the format KEY_WORD -> CommandHandler(command, callback)
             """
             Command_Handler = namedtuple("Command_Handler", "command callback")
-            keys_main = ["START", "MENU", "PROFILE", "CLEAN_TIME", "HELP"]
+            keys_main = ["START", "MENU", "PROFILE", "SET_CLEAN_DATE", "CLEAN_TIME", "HELP"]
             keys_reading = ["DAILY_REFLECTION", "JUST_FOR_TODAY"]
             keys_prayer = ["LORDS_PRAYER", "SERENITY_PRAYER", "ST_JOSEPHS_PRAYER", "TENDER_AND_COMPASSIONATE_GOD",
                            "THIRD_STEP_PRAYER", "SEVENTH_STEP_PRAYER", "ELEVENTH_STEP_PRAYER"]
             keys_notification = ["ENABLE_DAILY_NOTIFICATION", "DISABLE_DAILY_NOTIFICATION", "SET_UTC_OFFSET"]
             command_keys = keys_main + keys_reading + keys_prayer + keys_notification
-            names_main = ["start", "menu", "profile", "clean_time", "help"]
+            names_main = ["start", "menu", "profile", "set_clean_date", "clean_time", "help"]
             names_reading = ["daily_reflection", "just_for_today"]
             names_prayer = ["lords_prayer", "serenity_prayer", "st_josephs_prayer", "tender_and_compassionate_god",
                             "third_step_prayer", "seventh_step_prayer", "eleventh_step_prayer"]
             names_notification = ["enable_daily_notification", "disable_daily_notification", "set_utc_offset"]
             command_names = names_main + names_reading + names_prayer + names_notification
-            callbacks_main = [start, start, profile, clean_time, help_command]
+            callbacks_main = [start, start, profile, set_clean_date, clean_time, help_command]
             callbacks_reading = [readings] * len(names_reading)
             callbacks_prayer = [prayers] * len(names_prayer)
             callbacks_notification = [enable_daily_notification, disable_daily_notification,
@@ -108,6 +108,16 @@ def profile(update: Update, context: CallbackContext) -> None:
     update, context, user = bot_helper.get_user(update, context)
     msg = Strings.PROFILE.format(user["FirstName"], utils.get_user_profile_str(user))
     send_message(BotUCM(update, context, msg), reply_markup=bot_helper.main_menu_keyboard())
+
+
+def set_clean_date(update: Update, context: CallbackContext) -> None:
+    """Set Clean Date."""
+    update, context, user = bot_helper.get_user(update, context)
+    inp = update.message.text.split()
+    msg = Strings.SET_CLEAN_DATE_FAILURE.format(user["FirstName"])
+    if len(inp) == 3 and database.set_clean_date(user["UserID"], inp[1] + " " + inp[2]):
+        msg = Strings.SET_CLEAN_DATE_SUCCESS.format(user["FirstName"], inp[1] + " " + inp[2])
+    send_message(BotUCM(update, context, msg))
 
 
 def clean_time(update: Update, context: CallbackContext) -> None:

@@ -36,6 +36,8 @@ class Strings:
     PROFILE_CLEAN_DATE = "Clean Date: {}"
     PROFILE_UTC_OFFSET = "UTC Offset: {}"
     PROFILE_DAILY_NOTIFICATION = "Daily Notification Time: {}"
+    SET_CLEAN_DATE_SUCCESS = "{}, your clean date has been set to: {}"
+    SET_CLEAN_DATE_FAILURE = "{}, use this format to set clean date:\n\n/set_clean_date YYYY-MM-DD HH:MM:SS"
     CLEAN_TIME = "Yaay!!! 👏👏👏, you have {} or {} days of clean time."
     CLEAN_TIME_CLEAN_DATE_NOT_SET = "{}, you haven't set your profile yet. Please update user profile with clean " \
                                     "date to get clean time data."

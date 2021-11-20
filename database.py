@@ -242,3 +242,13 @@ def get_random_motivational_str() -> str:
     rand_int = random.randrange(get_count(Tables.MOTIVATIONAL_QUOTES, Columns.SL_NO))
     quote = get_record(Tables.MOTIVATIONAL_QUOTES, DBKeyValue(Columns.SL_NO, rand_int))
     return quote[0][1]
+
+
+def set_clean_date(user_id: int, str_date: str) -> bool:
+    if check_user_exists(user_id):
+        dt = utils.convert_str_to_datetime(str_date)
+        if dt:
+            update_record(Tables.USERS, DBKeyValue(Columns.USER_ID, user_id), DBKeyValue(Columns.CLEAN_DATE, str_date))
+            # ToDo: Force update the user_data in context to reflect the change
+            return True
+    return False
