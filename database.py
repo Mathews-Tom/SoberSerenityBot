@@ -3,9 +3,10 @@ import os
 import random
 from typing import Tuple, Union
 
+import sqlite3
 from dateutil.relativedelta import relativedelta
 from dotenv import load_dotenv
-from pysqlcipher3 import dbapi2 as sqlite3
+# from pysqlcipher3 import dbapi2 as sqlite3
 from telegram import Chat
 
 import utils

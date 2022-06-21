@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import logging
 import os
 from collections import namedtuple
 from enum import Enum
@@ -271,6 +272,7 @@ def send_message(bot_ucm: BotUCM, reply_markup: ReplyMarkup = None) -> None:
     """Send message."""
     update = bot_helper.answer_callback_query(bot_ucm.update)
     update, context, user = bot_helper.get_user(update, bot_ucm.context)
+    root_logger.info(bot_ucm.message)
     context.bot.sendMessage(chat_id=user["UserID"],
                             text=bot_ucm.message,
                             parse_mode=ParseMode.HTML,
@@ -296,6 +298,19 @@ def unknown_command(update: Update, context: CallbackContext) -> None:
 
 
 if __name__ == '__main__':
+    root_logger = logging.getLogger()
+    root_logger.handlers = []
+    root_logger.setLevel(logging.INFO)
+    file_handler = logging.FileHandler('Logs/SoberSerenityBotLog.log')
+    console_handler = logging.StreamHandler()
+    formatter = logging.Formatter(
+        '%(asctime)s - %(filename)s - %(funcName)s - Line: %(lineno)d - %(levelname)s - %(message)s')
+    file_handler.setFormatter(formatter)
+    console_handler.setFormatter(formatter)
+    console_handler.setLevel(logging.ERROR)
+    root_logger.addHandler(file_handler)
+    root_logger.addHandler(console_handler)
+
     load_dotenv()
     sober_serenity_token = os.environ.get("SOBER_SERENITY_TOKEN")
     bot = SoberSerenity(sober_serenity_token)
